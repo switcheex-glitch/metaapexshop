@@ -28,17 +28,17 @@ const PLATEGA_METHODS = [
 
 const MANUAL_METHODS = [
   { id: 'kaspi',  name: 'Kaspi (Visa)',  icon: <Landmark className="w-4 h-4" />,   country: '🇰🇿 Казахстан', currency: 'KZT', symbol: '₸',  rate: 4.8,  infoUrl: 'https://telegra.ph/Oplata-Kaspi-10-31',       requisites: [{ label: 'Kaspi / РБ — Фарида Л.',  value: '4400 4303 0558 1131' }] },
-  { id: 'privat', name: 'Приват Банк',   icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'Приват Банк — Богдан Р.', value: '4441111066552765' }] },
   { id: 'mono',   name: 'MonoBank',      icon: <CreditCard className="w-4 h-4" />, country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'MonoBank — Богдан Р.',    value: '4441111066552765' }] },
-  { id: 'polski', name: 'Bank Polski',   icon: <Landmark className="w-4 h-4" />,   country: '🇵🇱 Польша',    currency: 'PLN', symbol: 'zł', rate: 0.04, infoUrl: 'https://telegra.ph/Oplata-Bank-Polski-10-31', requisites: [{ label: 'Bank Polski — Богдан Р.', value: '4323347363236206' }] },
+  { id: 'abank',  name: 'АБанк',         icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'АБанк — Богдан Р.',       value: '4323347363236206' }] },
+  { id: 'pumb',   name: 'Пумб',          icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'Пумб — Богдан Р.',        value: '5355280043078623' }] },
   { id: 'rb',     name: 'Оплата с РБ',   icon: <CreditCard className="w-4 h-4" />, country: '🇧🇾 Беларусь',  currency: 'BYN', symbol: 'Br', rate: 0.035,infoUrl: 'https://telegra.ph/Oplata-s-belarus-10-31',   requisites: [{ label: 'Kaspi Visa — Фарида Л.', value: '4400 4303 0558 1131' }] },
   { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍 Весь мир',   currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',      requisites: [{ label: 'PayPal Email',            value: 'Dark_in@mail.ru' }] },
 ];
 
 const METHOD_NAMES: Record<string, string> = {
   sbp: 'СБП', cards_ru: 'Карты РФ', crypto: 'Криптовалюта',
-  kaspi: 'Kaspi', privat: 'Приват Банк', mono: 'MonoBank',
-  polski: 'Bank Polski', rb: 'РБ', paypal: 'PayPal',
+  kaspi: 'Kaspi', mono: 'MonoBank', abank: 'АБанк', pumb: 'Пумб',
+  rb: 'РБ', paypal: 'PayPal',
 };
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice }) => {
