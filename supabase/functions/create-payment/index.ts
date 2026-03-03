@@ -55,7 +55,7 @@ serve(async (req) => {
       description: `Покупка: ${productName}`,
       return: 'https://vibetechnology.app/payment-success',
       failedUrl: 'https://vibetechnology.app/payment-failed',
-      payload: JSON.stringify({ profileId, productName }),
+      payload: JSON.stringify({ profileId, productName, productId: productName.toLowerCase().replace(/\s+/g, '_'), price: Number(amount) }),
     };
 
     const response = await fetch('https://app.platega.io/transaction/process', {
