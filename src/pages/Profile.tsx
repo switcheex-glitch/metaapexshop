@@ -6,7 +6,7 @@ import { ArrowLeft, Wallet, Calendar, Clock, ShoppingBag, LogOut, ChevronRight, 
 import { Button } from "@/components/ui/button";
 import { useCurrency } from '@/hooks/use-currency';
 import { useAuth } from '@/hooks/use-auth';
-import { supabase, Purchase } from '@/integrations/supabase/client';
+import { Purchase } from '@/integrations/supabase/client';
 import TopUpModal from '@/components/TopUpModal';
 import {
   DropdownMenu,
@@ -14,6 +14,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+const PROFILE_API = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/profile-api';
+const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
 const STATUS_CONFIG = {
   pending:  { label: 'На рассмотрении', color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/20', dot: 'bg-yellow-400' },
@@ -31,8 +35,6 @@ const Profile = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [inviteLinks, setInviteLinks] = useState<Record<string, string>>({});
-
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
 
   useEffect(() => {
     if (!isLoading && !profile) {
@@ -61,33 +63,30 @@ const Profile = () => {
 
   const loadPurchases = async () => {
     if (!profile) return;
-    const { data } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('profile_id', profile.id)
-      .order('purchased_at', { ascending: false });
-    if (data) setPurchases(data as Purchase[]);
+    const res = await fetch(`${PROFILE_API}?action=get-purchases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ profileId: profile.id }),
+    });
+    const data = await res.json();
+    if (data.purchases) setPurchases(data.purchases as Purchase[]);
   };
 
   const handleGetProduct = async (purchaseId: string) => {
     setInvitingId(purchaseId);
-    try {
-      const res = await fetch('https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/invite-to-group', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-        body: JSON.stringify({ purchaseId }),
-      });
-      const data = await res.json();
-      if (data.invite_link) {
-        setInviteLinks(prev => ({ ...prev, [purchaseId]: data.invite_link }));
-        window.open(data.invite_link, '_blank');
-      } else if (data.success && data.added_directly) {
-        await loadPurchases();
-      } else if (data.error) {
-        alert(data.error);
-      }
-    } catch {
-      alert('Ошибка соединения. Попробуйте ещё раз.');
+    const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ purchaseId }),
+    });
+    const data = await res.json();
+    if (data.invite_link) {
+      setInviteLinks(prev => ({ ...prev, [purchaseId]: data.invite_link }));
+      window.open(data.invite_link, '_blank');
+    } else if (data.success && data.added_directly) {
+      await loadPurchases();
+    } else if (data.error) {
+      alert(data.error);
     }
     setInvitingId(null);
   };
