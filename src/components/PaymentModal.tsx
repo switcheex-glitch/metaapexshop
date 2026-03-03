@@ -1,14 +1,6 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import {
-  Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogPortal,
-  DialogOverlay,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Wallet, Landmark, Bitcoin, X, ExternalLink, Loader2, CheckCircle, Copy, Smartphone, Upload, ImageIcon } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -49,19 +41,7 @@ const METHOD_NAMES: Record<string, string> = {
   polski: 'Bank Polski', rb: 'РБ', paypal: 'PayPal',
 };
 
-// Конвертация суммы в нужную валюту
-const convertAmount = (rubAmount: number, rate: number, symbol: string, currency: string): string => {
-  if (currency === 'RUB') return `${rubAmount} ₽`;
-  const converted = Math.ceil(rubAmount * rate);
-  return `${converted.toLocaleString('ru-RU')} ${symbol}`;
-};
-
-// Конвертация в тенге для админа
-const toKZT = (rubAmount: number): string => {
-  return `${Math.ceil(rubAmount * 4.8)} ₸`;
-};
-
-const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice, containerRef }) => {
+const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice }) => {
   const { profile } = useAuth();
   const { currency, convertPrice, getSymbol, convertTo } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,15 +59,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
   const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
 
-  // Цена в текущей выбранной валюте
   const priceInCurrency = productPrice
     ? `${convertPrice(productPrice)} ${getSymbol()}`
     : '';
 
-  // Цена в валюте конкретного метода оплаты (для реквизитов)
   const getPriceForMethod = (methodCurrency: string, methodSymbol: string): string => {
     if (!productPrice) return '';
-    // Если валюта метода совпадает с выбранной — используем живой курс
     const currencyMap: Record<string, string> = {
       'RUB': 'RUB', 'KZT': 'KZT', 'UAH': 'UAH',
       'BYN': 'BYN', 'USD': 'USD', 'EUR': 'EUR',
@@ -118,56 +95,49 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
 
     const countryStr = [...PLATEGA_METHODS, ...MANUAL_METHODS].find(m => m.id === selectedMethod)?.country || '';
 
-    try {
-      const fd = new FormData();
-      fd.append('screenshot', screenshot);
-      fd.append('productName', productName);
-      fd.append('productId', productId || productName.toLowerCase().replace(/\s+/g, '_'));
-      fd.append('rubAmount', String(productPrice || 0));
-      fd.append('country', countryStr);
-      fd.append('username', profile.username);
-      fd.append('telegramId', profile.telegram_id);
-      fd.append('paymentMethod', METHOD_NAMES[selectedMethod || ''] || selectedMethod || '');
-      fd.append('profileId', profile.id);
+    const fd = new FormData();
+    fd.append('screenshot', screenshot);
+    fd.append('productName', productName);
+    fd.append('productId', productId || productName.toLowerCase().replace(/\s+/g, '_'));
+    fd.append('rubAmount', String(productPrice || 0));
+    fd.append('country', countryStr);
+    fd.append('username', profile.username);
+    fd.append('telegramId', profile.telegram_id);
+    fd.append('paymentMethod', METHOD_NAMES[selectedMethod || ''] || selectedMethod || '');
+    fd.append('profileId', profile.id);
 
-      const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY },
-        body: fd,
-      });
+    const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY },
+      body: fd,
+    });
 
-      const data = await response.json();
-      if (!response.ok || data?.error) {
-        setErrorMsg(data?.error || 'Ошибка отправки');
-        setStatus('screenshot');
-      } else {
-        setStatus('success');
-      }
-    } catch {
-      setErrorMsg('Ошибка соединения');
+    const data = await response.json();
+    if (!response.ok || data?.error) {
+      setErrorMsg(data?.error || 'Ошибка отправки');
       setStatus('screenshot');
+    } else {
+      setStatus('success');
     }
   };
 
   const callPlatega = async () => {
     setIsLoading(true);
     setErrorMsg('');
-    try {
-      const response = await fetch(`${SUPABASE_FN}/create-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-        body: JSON.stringify({ amount: productPrice || 0, productName, profileId: profile!.id, currency: 'RUB', paymentMethodId: selectedMethod }),
-      });
-      const data = await response.json();
-      if (!response.ok || data?.error) {
-        setErrorMsg(data?.error || 'Ошибка создания платежа');
-      } else {
-        setPaymentUrl(data.redirect);
-        setTransactionId(data.transactionId);
-        setStatus('pending');
-        window.open(data.redirect, '_blank');
-      }
-    } catch { setErrorMsg('Ошибка соединения'); }
+    const response = await fetch(`${SUPABASE_FN}/create-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ amount: productPrice || 0, productName, profileId: profile!.id, currency: 'RUB', paymentMethodId: selectedMethod }),
+    });
+    const data = await response.json();
+    if (!response.ok || data?.error) {
+      setErrorMsg(data?.error || 'Ошибка создания платежа');
+    } else {
+      setPaymentUrl(data.redirect);
+      setTransactionId(data.transactionId);
+      setStatus('pending');
+      window.open(data.redirect, '_blank');
+    }
     setIsLoading(false);
   };
 
@@ -182,17 +152,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   const handleCheckStatus = async () => {
     if (!transactionId || !profile) return;
     setIsLoading(true);
-    try {
-      const response = await fetch(`${SUPABASE_FN}/check-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-        body: JSON.stringify({ transactionId, profileId: profile.id, productName, productId: productId || '', price: productPrice || 0 }),
-      });
-      const data = await response.json();
-      if (data?.status === 'CONFIRMED') setStatus('success');
-      else if (data?.status === 'CANCELED') { setStatus('error'); setErrorMsg('Платёж отменён'); }
-      else setErrorMsg('Платёж ещё не подтверждён. Попробуйте через минуту.');
-    } catch { setErrorMsg('Ошибка проверки статуса'); }
+    const response = await fetch(`${SUPABASE_FN}/check-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ transactionId, profileId: profile.id, productName, productId: productId || '', price: productPrice || 0 }),
+    });
+    const data = await response.json();
+    if (data?.status === 'CONFIRMED') setStatus('success');
+    else if (data?.status === 'CANCELED') { setStatus('error'); setErrorMsg('Платёж отменён'); }
+    else setErrorMsg('Платёж ещё не подтверждён. Попробуйте через минуту.');
     setIsLoading(false);
   };
 
@@ -204,24 +172,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogPortal container={containerRef?.current}>
-        <DialogOverlay className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-sm" />
-        <DialogPrimitive.Content className="absolute left-1/2 top-1/2 z-[101] w-[92%] max-w-[480px] -translate-x-1/2 -translate-y-1/2 border border-zinc-800 bg-black p-6 shadow-2xl rounded-[32px] outline-none max-h-[85vh] overflow-y-auto">
+    <DialogPrimitive.Root open={isOpen} onOpenChange={handleClose}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[201] w-[92%] max-w-[480px] -translate-x-1/2 -translate-y-1/2 border border-zinc-800 bg-black p-6 shadow-2xl rounded-[32px] outline-none max-h-[88vh] overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
 
-          <DialogHeader className="mb-5">
+          {/* Header */}
+          <div className="mb-5">
             <div className="flex justify-between items-start">
-              <DialogTitle className="text-xl font-bold uppercase tracking-tight text-white">
+              <DialogPrimitive.Title className="text-xl font-bold uppercase tracking-tight text-white">
                 {status === 'success' ? '✅ Заявка отправлена!' : status === 'screenshot' || status === 'sending' ? '📎 Скриншот оплаты' : showRequisites ? 'Реквизиты' : 'ОПЛАТА ЗАКАЗА'}
-              </DialogTitle>
-              <button onClick={handleClose} className="text-zinc-500 hover:text-white transition-colors flex-shrink-0 ml-4"><X className="h-5 w-5" /></button>
+              </DialogPrimitive.Title>
+              <button onClick={handleClose} className="text-zinc-500 hover:text-white transition-colors flex-shrink-0 ml-4">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <DialogDescription className="text-zinc-500 text-xs text-left mt-1">
+            <DialogPrimitive.Description className="text-zinc-500 text-xs text-left mt-1">
               {status === 'success'
                 ? 'Мы проверим оплату и активируем товар'
                 : `«${productName}» — ${priceInCurrency}`}
-            </DialogDescription>
-          </DialogHeader>
+            </DialogPrimitive.Description>
+          </div>
 
           {/* Успех */}
           {status === 'success' && (
@@ -316,7 +287,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                   </span>
                   {' '}по реквизитам выше и укажите в комментарии название товара.
                 </p>
-                {/* Дополнительно показываем в рублях если валюта другая */}
                 {selectedManual.currency !== 'RUB' && (
                   <p className="text-[10px] text-zinc-600">
                     = {productPrice?.toLocaleString('ru-RU')} ₽ по актуальному курсу
@@ -390,8 +360,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
           )}
 
         </DialogPrimitive.Content>
-      </DialogPortal>
-    </Dialog>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 };
 

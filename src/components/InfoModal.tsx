@@ -1,15 +1,6 @@
 "use client";
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogPortal,
-  DialogOverlay,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Info } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -26,16 +17,15 @@ interface InfoModalProps {
   containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, product, containerRef }) => {
+const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, product }) => {
   if (!product) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogPortal container={containerRef?.current}>
-        <DialogOverlay className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-sm" />
-        <DialogContent
-          className="absolute left-1/2 top-1/2 z-[101] w-[90%] max-w-[600px] -translate-x-1/2 -translate-y-1/2 gap-0 border border-zinc-800 bg-black p-0 shadow-2xl duration-200 rounded-[32px] outline-none overflow-hidden"
-        >
+    <DialogPrimitive.Root open={isOpen} onOpenChange={onClose}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[201] w-[90%] max-w-[500px] -translate-x-1/2 -translate-y-1/2 gap-0 border border-zinc-800 bg-black shadow-2xl duration-200 rounded-[32px] outline-none overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+          
           <div className="relative h-48 w-full">
             <img 
               src={product.image} 
@@ -49,15 +39,15 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, product, contain
           </div>
 
           <div className="p-6 pt-2">
-            <DialogHeader className="mb-4">
+            <div className="mb-4">
               <div className="flex items-center gap-2 mb-1">
                 <Info className="w-4 h-4 text-zinc-500" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">ИНФОРМАЦИЯ</span>
               </div>
-              <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white leading-none">
+              <DialogPrimitive.Title className="text-2xl font-black uppercase tracking-tight text-white leading-none">
                 {product.name}
-              </DialogTitle>
-            </DialogHeader>
+              </DialogPrimitive.Title>
+            </div>
 
             <div className="space-y-4 mb-8">
               <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line font-medium">
@@ -66,7 +56,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, product, contain
               
               <div className="pt-4 border-t border-white/5 flex justify-between items-center">
                 <span className="text-zinc-500 text-xs uppercase font-bold tracking-wider">Стоимость</span>
-                <span className="text-xl font-black text-white">{product.price}</span>
+                <span className="text-xl font-black text-white">{product.price} ₽</span>
               </div>
             </div>
 
@@ -77,9 +67,9 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, product, contain
               ПОНЯТНО
             </Button>
           </div>
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 };
 
