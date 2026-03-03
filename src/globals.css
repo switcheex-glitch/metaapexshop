@@ -97,7 +97,17 @@
 
   body {
     @apply bg-background text-foreground;
-    min-width: 375px;
+    min-width: 320px;
+    /* Убираем bounce scroll на iOS */
+    overscroll-behavior: none;
+  }
+
+  /* Safe area для iPhone notch */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */
