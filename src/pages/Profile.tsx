@@ -35,6 +35,7 @@ const Profile = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [inviteLinks, setInviteLinks] = useState<Record<string, string>>({});
+  const [inviteErrors, setInviteErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isLoading && !profile) {
@@ -86,7 +87,7 @@ const Profile = () => {
     } else if (data.success && data.added_directly) {
       await loadPurchases();
     } else if (data.error) {
-      alert(data.error);
+      setInviteErrors(prev => ({ ...prev, [purchaseId]: data.error }));
     }
     setInvitingId(null);
   };
@@ -294,26 +295,34 @@ const Profile = () => {
                                 Вы добавлены в группу {item.product_name}
                               </div>
                             ) : (
-                              <button
-                                onClick={() => {
-                                  const link = inviteLinks[item.id] || item.invite_link;
-                                  if (link) {
-                                    window.open(link, '_blank');
-                                  } else {
-                                    handleGetProduct(item.id);
-                                  }
-                                }}
-                                disabled={invitingId === item.id}
-                                className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-xs sm:text-sm uppercase tracking-widest py-3 rounded-2xl transition-all active:scale-95"
-                              >
-                                {invitingId === item.id ? (
-                                  <><Loader2 size={14} className="animate-spin" /> Получаем доступ...</>
-                                ) : (inviteLinks[item.id] || item.invite_link) ? (
-                                  <><ExternalLink size={14} /> Открыть группу</>
-                                ) : (
-                                  <><ExternalLink size={14} /> Получить продукт</>
+                              <div className="space-y-2">
+                                <button
+                                  onClick={() => {
+                                    const link = inviteLinks[item.id] || item.invite_link;
+                                    if (link) {
+                                      window.open(link, '_blank');
+                                    } else {
+                                      setInviteErrors(prev => { const n = {...prev}; delete n[item.id]; return n; });
+                                      handleGetProduct(item.id);
+                                    }
+                                  }}
+                                  disabled={invitingId === item.id}
+                                  className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-xs sm:text-sm uppercase tracking-widest py-3 rounded-2xl transition-all active:scale-95"
+                                >
+                                  {invitingId === item.id ? (
+                                    <><Loader2 size={14} className="animate-spin" /> Получаем доступ...</>
+                                  ) : (inviteLinks[item.id] || item.invite_link) ? (
+                                    <><ExternalLink size={14} /> Открыть группу</>
+                                  ) : (
+                                    <><ExternalLink size={14} /> Получить продукт</>
+                                  )}
+                                </button>
+                                {inviteErrors[item.id] && (
+                                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                                    <p className="text-red-400 text-xs leading-relaxed">{inviteErrors[item.id]}</p>
+                                  </div>
                                 )}
-                              </button>
+                              </div>
                             )}
                           </div>
                         )}
