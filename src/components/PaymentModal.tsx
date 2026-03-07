@@ -2,11 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { CreditCard, Wallet, Landmark, Bitcoin, X, ExternalLink, Loader2, CheckCircle, Copy, Smartphone, Upload, ImageIcon } from "lucide-react";
+import { CreditCard, Wallet, Landmark, Bitcoin, X, ExternalLink, Loader2, CheckCircle, Copy, Smartphone, Upload, ImageIcon, User, ArrowRight, Bell } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ const METHOD_NAMES: Record<string, string> = {
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice }) => {
   const { profile } = useAuth();
   const { currency, convertPrice, getSymbol, convertTo } = useCurrency();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
@@ -196,15 +198,78 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
 
           {/* Успех */}
           {status === 'success' && (
-            <div className="flex flex-col items-center gap-5 py-4">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
-                <CheckCircle className="text-white" size={48} />
+            <div className="flex flex-col gap-4 py-2">
+              {/* Иконка успеха */}
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                    <CheckCircle className="text-white" size={40} />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center border-2 border-black">
+                    <span className="text-xs">✓</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-white font-black text-xl uppercase tracking-tight">Заявка принята!</p>
+                  <p className="text-zinc-500 text-sm mt-1">«{productName}»</p>
+                </div>
               </div>
-              <div className="text-center space-y-2">
-                <p className="text-white font-bold text-lg">Заявка принята!</p>
-                <p className="text-zinc-400 text-sm leading-relaxed">Скриншот отправлен администратору. После проверки товар будет активирован в вашем профиле.</p>
+
+              {/* Шаги что будет дальше */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-1">Что происходит дальше</p>
+
+                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                  <div className="w-8 h-8 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Bell size={14} className="text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Проверка оплаты</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Администратор проверит ваш чек. Обычно это занимает до 30 минут.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                  <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User size={14} className="text-zinc-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Ссылки появятся в профиле</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">После одобрения все ссылки и доступы к продукту будут в разделе <span className="text-white font-bold">«Мои покупки»</span> в вашем профиле.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                  <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle size={14} className="text-zinc-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Получите доступ</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Нажмите кнопку <span className="text-white font-bold">«Получить продукт»</span> в профиле — вас добавят в закрытую группу.</p>
+                  </div>
+                </div>
               </div>
-              <Button onClick={handleClose} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl">Закрыть</Button>
+
+              {/* Кнопки */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={() => { handleClose(); navigate('/profile'); }}
+                  className="flex-[2] h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all"
+                >
+                  <span className="flex items-center gap-2">
+                    <User size={16} />
+                    Перейти в профиль
+                    <ArrowRight size={16} />
+                  </span>
+                </Button>
+                <Button
+                  onClick={handleClose}
+                  variant="outline"
+                  className="flex-1 h-14 border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-2xl font-bold bg-transparent"
+                >
+                  Закрыть
+                </Button>
+              </div>
             </div>
           )}
 
