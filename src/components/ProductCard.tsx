@@ -53,7 +53,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { convertPrice, getSymbol, setCurrency, currency, isLoadingRates, convertTo } = useCurrency();
   const { isActive: isSaleActive, percent: salePercent } = useSale();
-  const numericPrice = parseInt(price.replace(/[^\\d]/g, '')) || 0;
+  const numericPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
   const displayPrice = salePrice && isSaleActive ? salePrice : numericPrice;
   const currentCurrencyInfo = CURRENCIES.find(c => c.id === currency);
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 
-// Скидка 30% с 8 марта 00:00 МСК до 9 марта 00:00 МСК
-const SALE_START = new Date('2026-03-08T00:00:00+03:00').getTime();
-const SALE_END = new Date('2026-03-09T00:00:00+03:00').getTime();
+// Скидка 30% с 7 марта 00:00 МСК до 9 марта 23:59 МСК
+const SALE_START = new Date('2026-03-07T00:00:00+03:00').getTime();
+const SALE_END = new Date('2026-03-09T23:59:59+03:00').getTime();
 const SALE_PERCENT = 30;
 
 export function useSale() {
