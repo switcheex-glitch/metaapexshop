@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, Newspaper, User } from "lucide-react";
+import { Headphones, Newspaper, User, Gift, Clock } from "lucide-react";
 import ProductCard from '@/components/ProductCard';
 import PaymentModal from '@/components/PaymentModal';
 import InfoModal from '@/components/InfoModal';
 import { useAuth } from '@/hooks/use-auth';
+import { useSale } from '@/hooks/use-sale';
 
 const products = [
   {
@@ -68,6 +69,7 @@ const products = [
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { isActive: isSaleActive, countdown, percent, getDiscountedPrice } = useSale();
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -84,6 +86,11 @@ const Index = () => {
   };
 
   const currentProduct = products.find(p => p.name === selectedProduct) || null;
+  const currentProductPrice = currentProduct
+    ? (isSaleActive
+        ? getDiscountedPrice(parseInt(currentProduct.price) || 0)
+        : parseInt(currentProduct.price) || 0)
+    : 0;
 
   return (
     <div className="min-h-screen bg-black font-sans text-white flex flex-col">
@@ -126,23 +133,66 @@ const Index = () => {
 
         {/* Карточки */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-12 pb-3 sm:pb-12">
+
+          {/* 🎀 Sale Banner */}
+          {isSaleActive && (
+            <div className="mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl border border-rose-500/20 bg-gradient-to-r from-rose-950/60 via-pink-950/40 to-rose-950/60">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvc3ZnPg==')] opacity-50" />
+              <div className="relative px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-500/20 rounded-2xl flex items-center justify-center flex-shrink-0 border border-rose-500/20">
+                  <Gift size={20} className="text-rose-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
+                      🌷 8 Марта — скидка {percent}%
+                    </p>
+                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20">
+                      на всё
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
+                    Только сегодня на все продукты
+                  </p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
+                    <Clock size={12} className="text-rose-400" />
+                    <span className="font-mono text-sm sm:text-lg font-black text-white tracking-wider">
+                      {countdown}
+                    </span>
+                  </div>
+                  <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-0.5 uppercase tracking-widest">до конца</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em] mb-3 sm:mb-6">
             Рекомендуемые товары
           </p>
           {/* Мобиль: 1 колонка. ПК: 2 колонки */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                name={product.name}
-                description={product.description}
-                price={product.price}
-                image={product.image}
-                isComingSoon={product.isComingSoon}
-                onPay={() => handlePay(product.name)}
-                onInfo={() => handleInfo(product.name)}
-              />
-            ))}
+            {products.map((product) => {
+              const originalPrice = parseInt(product.price) || 0;
+              const discountedPrice = isSaleActive && !product.isComingSoon && originalPrice > 0
+                ? getDiscountedPrice(originalPrice)
+                : undefined;
+
+              return (
+                <ProductCard
+                  key={product.id}
+                  name={product.name}
+                  description={product.description}
+                  price={product.price}
+                  image={product.image}
+                  isComingSoon={product.isComingSoon}
+                  onPay={() => handlePay(product.name)}
+                  onInfo={() => handleInfo(product.name)}
+                  salePrice={discountedPrice}
+                />
+              );
+            })}
           </div>
         </main>
 
@@ -169,7 +219,7 @@ const Index = () => {
         onClose={() => setIsPayModalOpen(false)}
         productName={selectedProduct || ""}
         productId={currentProduct?.id}
-        productPrice={currentProduct ? parseInt(currentProduct.price) : 0}
+        productPrice={currentProductPrice}
         containerRef={containerRef}
       />
 

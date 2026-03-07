@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Info, CreditCard, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/use-currency";
+import { useSale } from "@/hooks/use-sale";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ interface ProductCardProps {
   isComingSoon?: boolean;
   onPay: () => void;
   onInfo: () => void;
+  salePrice?: number;
 }
 
 const CURRENCIES = [
@@ -46,10 +48,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   image,
   isComingSoon,
   onPay,
-  onInfo
+  onInfo,
+  salePrice
 }) => {
   const { convertPrice, getSymbol, setCurrency, currency, isLoadingRates, convertTo } = useCurrency();
-  const numericPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
+  const { isActive: isSaleActive, percent: salePercent } = useSale();
+  const numericPrice = parseInt(price.replace(/[^\\d]/g, '')) || 0;
+  const displayPrice = salePrice && isSaleActive ? salePrice : numericPrice;
   const currentCurrencyInfo = CURRENCIES.find(c => c.id === currency);
 
   return (
@@ -78,6 +83,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </Badge>
           </div>
         )}
+
+        {/* Sale badge */}
+        {isSaleActive && !isComingSoon && numericPrice > 0 && (
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
+            <div className="bg-rose-500 text-white text-[10px] sm:text-xs font-black px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg shadow-rose-500/30 animate-pulse">
+              -{salePercent}%
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Info Section */}
@@ -102,11 +116,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-xl sm:text-3xl font-bold tracking-tight hover:text-zinc-400 transition-colors cursor-pointer outline-none flex items-center gap-2">
-                {isComingSoon ? "TBA" : isLoadingRates ? (
+              <button className="text-right hover:text-zinc-400 transition-colors cursor-pointer outline-none flex flex-col items-end gap-0.5">
+                {isComingSoon ? (
+                  <span className="text-xl sm:text-3xl font-bold tracking-tight">TBA</span>
+                ) : isLoadingRates ? (
                   <Loader2 size={20} className="animate-spin text-zinc-600" />
                 ) : (
-                  `${convertPrice(numericPrice)} ${getSymbol()}`
+                  <>
+                    {isSaleActive && salePrice && salePrice !== numericPrice && (
+                      <span className="text-xs sm:text-sm text-zinc-600 line-through font-medium">
+                        {convertPrice(numericPrice)} {getSymbol()}
+                      </span>
+                    )}
+                    <span className={cn(
+                      "text-xl sm:text-3xl font-bold tracking-tight",
+                      isSaleActive && salePrice ? "text-rose-400" : ""
+                    )}>
+                      {convertPrice(displayPrice)} {getSymbol()}
+                    </span>
+                  </>
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -135,8 +163,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     <span className="font-medium text-sm">{cur.label}</span>
                   </span>
                   <span className={cn("font-mono text-xs", currency === cur.id ? "text-white font-bold" : "text-zinc-500")}>
-                    {numericPrice > 0 && cur.id !== 'VB'
-                      ? `${convertTo(numericPrice, cur.id as any)} ${cur.symbol}`
+                    {displayPrice > 0 && cur.id !== 'VB'
+                      ? `${convertTo(displayPrice, cur.id as any)} ${cur.symbol}`
                       : cur.symbol}
                   </span>
                 </DropdownMenuItem>
