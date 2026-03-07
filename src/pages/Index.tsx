@@ -106,7 +106,7 @@ const Index = () => {
         <header className="pt-safe pt-4 sm:pt-10 pb-3 sm:pb-6 px-4 sm:px-12 flex justify-between items-center bg-black/80 backdrop-blur-xl z-20 flex-shrink-0">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Магазин</p>
-            <p className="text-base sm:text-xl font-black tracking-tighter uppercase italic">Vibe Technology</p>
+            <p className="text-base sm:text-xl font-black tracking-tighter uppercase italic">Apex Technology</p>
           </div>
           <button
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 active:scale-95 transition-transform bg-zinc-900 flex items-center justify-center"

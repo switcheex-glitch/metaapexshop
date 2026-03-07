@@ -152,7 +152,7 @@ const Login = () => {
         <header className="pt-6 sm:pt-10 pb-4 sm:pb-6 px-5 sm:px-12 flex justify-between items-center bg-black/50 backdrop-blur-xl z-20">
           <div>
             <h1 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Store</h1>
-            <p className="text-lg sm:text-xl font-black tracking-tighter uppercase italic">Vibe Technology</p>
+            <p className="text-lg sm:text-xl font-black tracking-tighter uppercase italic">Apex Technology</p>
           </div>
           <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)]">
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
@@ -197,7 +197,7 @@ const Login = () => {
                   <p className="text-zinc-500 text-sm">
                     {mode === 'register'
                       ? 'Создайте пароль для вашего аккаунта.'
-                      : 'Введите пароль от вашего аккаунта Vibe Technology.'}
+                      : 'Введите пароль от вашего аккаунта Apex Technology.'}
                   </p>
                 </div>
 
