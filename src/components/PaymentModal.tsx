@@ -135,7 +135,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     } else {
       setStatus('success');
       // Автоматически перенаправляем в профиль через 3 секунды
-      setTimeout(() => goToProfile(), 3000);
+      setTimeout(() => {
+        onClose();
+        navigate('/profile');
+      }, 3000);
     }
   };
 
@@ -168,28 +171,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   };
 
   const goToProfile = () => {
+    // Сбрасываем состояние
+    setSelectedMethod(null); setPaymentUrl(null); setTransactionId(null);
+    setStatus('idle'); setErrorMsg(''); setShowRequisites(false);
+    setScreenshot(null); setScreenshotPreview(null);
+    // Закрываем и переходим
     onClose();
-    setTimeout(() => navigate('/profile'), 50);
+    navigate('/profile');
   };
 
-  const handleCheckStatus = async () => {
-    if (!transactionId || !profile) return;
-    setIsLoading(true);
-    const response = await fetch(`${SUPABASE_FN}/check-payment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-      body: JSON.stringify({ transactionId, profileId: profile.id, productName, productId: productId || '', price: productPrice || 0 }),
-    });
-    const data = await response.json();
-    if (data?.status === 'CONFIRMED') {
-      setStatus('success');
-    } else if (data?.status === 'CANCELED') {
-      setStatus('error');
-      setErrorMsg('Платёж отменён');
-    } else {
-      goToProfile();
-    }
-    setIsLoading(false);
+  const handleCheckStatus = () => {
+    // Просто переходим в профиль — там пользователь увидит статус покупки
+    goToProfile();
   };
 
   const handleClose = () => {
@@ -354,11 +347,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                 </div>
               </div>
               {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
-              <Button onClick={handleCheckStatus} disabled={isLoading} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
-                {isLoading
-                  ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Проверяем...</span>
-                  : <span className="flex items-center gap-2"><CheckCircle size={18} /> Я оплатил — перейти в профиль</span>
-                }
+              <Button onClick={handleCheckStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
+                <span className="flex items-center gap-2">
+                  <CheckCircle size={18} />
+                  Я оплатил — перейти в профиль
+                  <ArrowRight size={16} />
+                </span>
               </Button>
               <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
                 Открыть страницу оплаты снова
