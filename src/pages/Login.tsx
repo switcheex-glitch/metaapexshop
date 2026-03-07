@@ -14,6 +14,7 @@ import {
   isInsideTelegram,
   type TelegramUser,
 } from '@/hooks/use-telegram';
+import AgreementModal from '@/components/AgreementModal';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,6 +35,15 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingUser, setIsCheckingUser] = useState(true);
 
+  // Agreement
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  useEffect(() => {
+    const agreed = localStorage.getItem('vibe_agreed_terms');
+    if (agreed === '1') setAgreedToTerms(true);
+  }, []);
+
   useEffect(() => {
     const tg = getTelegramWebApp();
     if (tg) {
@@ -52,7 +62,7 @@ const Login = () => {
   const telegramIdFormatted = tgUser ? formatTelegramId(tgUser.id) : null;
   const displayName = tgUser ? getTelegramDisplayName(tgUser) : null;
 
-  const handleSubmit = async () => {
+  const doSubmit = async () => {
     setError('');
 
     if (isTelegram && tgUser) {
@@ -101,6 +111,25 @@ const Login = () => {
     }
   };
 
+  const handleSubmit = () => {
+    if (!agreedToTerms) {
+      setShowAgreement(true);
+      return;
+    }
+    doSubmit();
+  };
+
+  const handleAgreementAccept = () => {
+    localStorage.setItem('vibe_agreed_terms', '1');
+    setAgreedToTerms(true);
+    setShowAgreement(false);
+    doSubmit();
+  };
+
+  const handleAgreementDecline = () => {
+    setShowAgreement(false);
+  };
+
   if (isCheckingUser) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -111,6 +140,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-0 sm:p-4 font-sans text-white">
+      <AgreementModal
+        isOpen={showAgreement}
+        onAccept={handleAgreementAccept}
+        onDecline={handleAgreementDecline}
+      />
+
       <div className="relative w-full max-w-[1024px] h-screen sm:h-[768px] bg-black rounded-none sm:rounded-[40px] border-0 sm:border-[12px] border-zinc-900 overflow-hidden flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)]">
 
         {/* Header */}
