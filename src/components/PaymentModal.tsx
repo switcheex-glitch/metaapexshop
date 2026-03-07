@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { CreditCard, Wallet, Landmark, Bitcoin, X, ExternalLink, Loader2, CheckCircle, Copy, Smartphone, Upload, ImageIcon, User, ArrowRight, Bell } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -57,6 +57,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   const [showRequisites, setShowRequisites] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (status === 'success') {
+      setCountdown(3);
+      const interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev === null || prev <= 1) { clearInterval(interval); return null; }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [status]);
 
   const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
   const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
@@ -120,6 +134,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
       setStatus('screenshot');
     } else {
       setStatus('success');
+      // Автоматически перенаправляем в профиль через 3 секунды
+      setTimeout(() => {
+        handleClose();
+        navigate('/profile');
+      }, 3000);
     }
   };
 
@@ -160,9 +179,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
       body: JSON.stringify({ transactionId, profileId: profile.id, productName, productId: productId || '', price: productPrice || 0 }),
     });
     const data = await response.json();
-    if (data?.status === 'CONFIRMED') setStatus('success');
-    else if (data?.status === 'CANCELED') { setStatus('error'); setErrorMsg('Платёж отменён'); }
-    else setErrorMsg('Платёж ещё не подтверждён. Попробуйте через минуту.');
+    if (data?.status === 'CONFIRMED') {
+      setStatus('success');
+    } else if (data?.status === 'CANCELED') {
+      setStatus('error');
+      setErrorMsg('Платёж отменён');
+    } else {
+      // Не подтверждён — перекидываем в профиль чтобы следил там
+      handleClose();
+      navigate('/profile');
+    }
     setIsLoading(false);
   };
 
@@ -258,7 +284,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                 >
                   <span className="flex items-center gap-2">
                     <User size={16} />
-                    Перейти в профиль
+                    {countdown !== null ? `Профиль через ${countdown}...` : 'Перейти в профиль'}
                     <ArrowRight size={16} />
                   </span>
                 </Button>
@@ -318,13 +344,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
           {/* Ожидание Platega */}
           {status === 'pending' && (
             <div className="space-y-4">
-              <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 text-center space-y-2">
-                <p className="text-zinc-300 text-sm font-medium">Страница оплаты открыта в новой вкладке.</p>
-                <p className="text-zinc-500 text-xs">После оплаты нажмите кнопку ниже.</p>
+              <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 space-y-3">
+                <p className="text-zinc-300 text-sm font-medium text-center">Страница оплаты открыта в новой вкладке.</p>
+                <div className="flex items-start gap-3 bg-white/3 rounded-xl p-3 border border-white/5">
+                  <User size={14} className="text-zinc-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-zinc-500 text-xs leading-relaxed">
+                    После оплаты нажмите кнопку ниже — мы проверим статус и перенаправим вас в <span className="text-white font-bold">профиль</span>, где появятся все ссылки на продукт.
+                  </p>
+                </div>
               </div>
               {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
-              <Button onClick={handleCheckStatus} disabled={isLoading} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200">
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Я оплатил — проверить'}
+              <Button onClick={handleCheckStatus} disabled={isLoading} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
+                {isLoading
+                  ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Проверяем...</span>
+                  : <span className="flex items-center gap-2"><CheckCircle size={18} /> Я оплатил — перейти в профиль</span>
+                }
               </Button>
               <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
                 Открыть страницу оплаты снова
