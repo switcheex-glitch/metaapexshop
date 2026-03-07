@@ -135,10 +135,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     } else {
       setStatus('success');
       // Автоматически перенаправляем в профиль через 3 секунды
-      setTimeout(() => {
-        handleClose();
-        navigate('/profile');
-      }, 3000);
+      setTimeout(() => goToProfile(), 3000);
     }
   };
 
@@ -170,6 +167,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     if (isPlatega) await callPlatega();
   };
 
+  const goToProfile = () => {
+    onClose();
+    setTimeout(() => navigate('/profile'), 50);
+  };
+
   const handleCheckStatus = async () => {
     if (!transactionId || !profile) return;
     setIsLoading(true);
@@ -185,9 +187,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
       setStatus('error');
       setErrorMsg('Платёж отменён');
     } else {
-      // Не подтверждён — перекидываем в профиль чтобы следил там
-      handleClose();
-      navigate('/profile');
+      goToProfile();
     }
     setIsLoading(false);
   };
@@ -279,7 +279,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
               {/* Кнопки */}
               <div className="flex gap-3 pt-2">
                 <Button
-                  onClick={() => { handleClose(); navigate('/profile'); }}
+                  onClick={goToProfile}
                   className="flex-[2] h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all"
                 >
                   <span className="flex items-center gap-2">
