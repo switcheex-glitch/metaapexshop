@@ -206,7 +206,7 @@ const Index = () => {
           </button>
           <div className="w-12 h-1 bg-white/10 rounded-full" />
           <button
-            onClick={() => window.open('https://t.me/VibeTechh', '_blank')}
+            onClick={() => window.open('https://t.me/ApexTechhh', '_blank')}
             className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400"
           >
             <Newspaper size={20} />
