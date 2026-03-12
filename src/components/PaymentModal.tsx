@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -59,6 +60,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
 
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+
   useEffect(() => {
     if (status === 'success') {
       setCountdown(3);
@@ -71,6 +75,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
       return () => clearInterval(interval);
     }
   }, [status]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const accepted = localStorage.getItem('vibe_privacy_policy_accepted') === '1';
+    setPrivacyAccepted(accepted);
+    setShowPrivacy(!accepted);
+  }, [isOpen]);
 
   const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
   const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
@@ -163,6 +174,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   };
 
   const handlePay = async () => {
+    if (!privacyAccepted) { setShowPrivacy(true); return; }
     if (!selectedMethod) { setErrorMsg('Выберите способ оплаты'); return; }
     if (!profile) { setErrorMsg('Необходимо войти в аккаунт'); return; }
     setErrorMsg('');
@@ -189,6 +201,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     setSelectedMethod(null); setPaymentUrl(null); setTransactionId(null);
     setStatus('idle'); setErrorMsg(''); setShowRequisites(false);
     setScreenshot(null); setScreenshotPreview(null);
+    setShowPrivacy(false);
     onClose();
   };
 
@@ -202,254 +215,273 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
           <div className="mb-5">
             <div className="flex justify-between items-start">
               <DialogPrimitive.Title className="text-xl font-bold uppercase tracking-tight text-white">
-                {status === 'success' ? '✅ Заявка отправлена!' : status === 'screenshot' || status === 'sending' ? '📎 Скриншот оплаты' : showRequisites ? 'Реквизиты' : 'ОПЛАТА ЗАКАЗА'}
+                {showPrivacy ? 'Политика конфиденциальности' : status === 'success' ? '✅ Заявка отправлена!' : status === 'screenshot' || status === 'sending' ? '📎 Скриншот оплаты' : showRequisites ? 'Реквизиты' : 'ОПЛАТА ЗАКАЗА'}
               </DialogPrimitive.Title>
               <button onClick={handleClose} className="text-zinc-500 hover:text-white transition-colors flex-shrink-0 ml-4">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <DialogPrimitive.Description className="text-zinc-500 text-xs text-left mt-1">
-              {status === 'success'
-                ? 'Мы проверим оплату и активируем товар'
-                : `«${productName}» — ${priceInCurrency}`}
+              {showPrivacy
+                ? 'Перед покупкой ознакомьтесь с информацией о конфиденциальности.'
+                : status === 'success'
+                  ? 'Мы проверим оплату и активируем товар'
+                  : `«${productName}» — ${priceInCurrency}`}
             </DialogPrimitive.Description>
           </div>
 
-          {/* Успех */}
-          {status === 'success' && (
-            <div className="flex flex-col gap-4 py-2">
-              {/* Иконка успеха */}
-              <div className="flex flex-col items-center gap-3 py-4">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-                    <CheckCircle className="text-white" size={40} />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center border-2 border-black">
-                    <span className="text-xs">✓</span>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-white font-black text-xl uppercase tracking-tight">Заявка принята!</p>
-                  <p className="text-zinc-500 text-sm mt-1">«{productName}»</p>
-                </div>
-              </div>
-
-              {/* Шаги что будет дальше */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-1">Что происходит дальше</p>
-
-                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
-                  <div className="w-8 h-8 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Bell size={14} className="text-yellow-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Проверка оплаты</p>
-                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Администратор проверит ваш чек. Обычно это занимает до 30 минут.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
-                  <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <User size={14} className="text-zinc-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Ссылки появятся в профиле</p>
-                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">После одобрения все ссылки и доступы к продукту будут в разделе <span className="text-white font-bold">«Мои покупки»</span> в вашем профиле.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
-                  <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle size={14} className="text-zinc-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Получите доступ</p>
-                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Нажмите кнопку <span className="text-white font-bold">«Получить продукт»</span> в профиле — вас добавят в закрытую группу.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Кнопки */}
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={goToProfile}
-                  className="flex-[2] h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all"
-                >
-                  <span className="flex items-center gap-2">
-                    <User size={16} />
-                    {countdown !== null ? `Профиль через ${countdown}...` : 'Перейти в профиль'}
-                    <ArrowRight size={16} />
-                  </span>
-                </Button>
-                <Button
-                  onClick={handleClose}
-                  variant="outline"
-                  className="flex-1 h-14 border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-2xl font-bold bg-transparent"
-                >
-                  Закрыть
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Загрузка скриншота */}
-          {(status === 'screenshot' || status === 'sending') && (
-            <div className="space-y-4">
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${screenshotPreview ? 'border-white/20' : 'border-zinc-700 hover:border-zinc-500'}`}
-              >
-                {screenshotPreview ? (
-                  <div className="space-y-3">
-                    <img src={screenshotPreview} alt="Скриншот" className="w-full max-h-48 object-contain rounded-xl" />
-                    <p className="text-zinc-500 text-xs">Нажмите, чтобы заменить</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 py-4">
-                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mx-auto">
-                      <ImageIcon className="text-zinc-500" size={28} />
-                    </div>
-                    <div>
-                      <p className="text-white font-bold">Прикрепите скриншот оплаты</p>
-                      <p className="text-zinc-500 text-xs mt-1">JPG, PNG — нажмите для выбора</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-
-              {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
-
-              <Button
-                onClick={handleSendScreenshot}
-                disabled={!screenshot || status === 'sending'}
-                className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 disabled:opacity-40"
-              >
-                {status === 'sending' ? (
-                  <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Отправляем...</span>
-                ) : (
-                  <span className="flex items-center gap-2"><Upload size={18} /> Отправить заявку</span>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* Ожидание Platega */}
-          {status === 'pending' && (
-            <div className="space-y-4">
-              <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 space-y-3">
-                <p className="text-zinc-300 text-sm font-medium text-center">Страница оплаты открыта в новой вкладке.</p>
-                <div className="flex items-start gap-3 bg-white/3 rounded-xl p-3 border border-white/5">
-                  <User size={14} className="text-zinc-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-zinc-500 text-xs leading-relaxed">
-                    После оплаты нажмите кнопку ниже — мы проверим статус и перенаправим вас в <span className="text-white font-bold">профиль</span>, где появятся все ссылки на продукт.
-                  </p>
-                </div>
-              </div>
-              {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
-              <Button onClick={handleCheckStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
-                <span className="flex items-center gap-2">
-                  <CheckCircle size={18} />
-                  Я оплатил — перейти в профиль
-                  <ArrowRight size={16} />
-                </span>
-              </Button>
-              <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
-                Открыть страницу оплаты снова
-              </button>
-            </div>
-          )}
-
-          {/* Ручные реквизиты */}
-          {showRequisites && selectedManual && status === 'idle' && (
-            <div className="space-y-4">
-              {selectedManual.requisites.map((req, i) => (
-                <div key={i} className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{req.label}</p>
-                    <p className="font-mono text-base tracking-wider text-white mt-1">{req.value}</p>
-                  </div>
-                  <button onClick={() => copyToClipboard(req.value)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ml-3"><Copy size={16} /></button>
-                </div>
-              ))}
-              <div className="bg-zinc-900/30 p-4 rounded-2xl border border-white/5 space-y-1">
-                <p className="text-[11px] text-zinc-500 leading-relaxed">
-                  Переведите{' '}
-                  <span className="text-white font-bold">
-                    {getPriceForMethod(selectedManual.currency, selectedManual.symbol)}
-                  </span>
-                  {' '}по реквизитам выше и укажите в комментарии название товара.
-                </p>
-                {selectedManual.currency !== 'RUB' && (
-                  <p className="text-[10px] text-zinc-600">
-                    = {productPrice?.toLocaleString('ru-RU')} ₽ по актуальному курсу
-                  </p>
-                )}
-              </div>
-              <button onClick={() => window.open(selectedManual.infoUrl, '_blank')} className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors py-2">
-                <ExternalLink size={14} /> Инструкция по оплате
-              </button>
-              <Button
-                onClick={() => { setStatus('screenshot'); }}
-                className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200"
-              >
-                Я оплатил — прикрепить скриншот
-              </Button>
-            </div>
-          )}
-
-          {/* Выбор метода */}
-          {!showRequisites && status === 'idle' && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🇷🇺 Россия (автооплата)</p>
-                <div className="space-y-2">
-                  {PLATEGA_METHODS.map((method) => (
-                    <div key={method.id} onClick={() => setSelectedMethod(method.id)}
-                      className={`flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
-                      <div className="flex-1 flex items-center gap-3 p-4">
-                        <span className="text-zinc-400">{method.icon}</span>
-                        <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
-                        {method.badge && <span className="text-[10px] bg-white/10 text-zinc-400 px-2 py-0.5 rounded-full">{method.badge}</span>}
+          {showPrivacy ? (
+            <PrivacyPolicyStep
+              onAccept={() => {
+                localStorage.setItem('vibe_privacy_policy_accepted', '1');
+                setPrivacyAccepted(true);
+                setShowPrivacy(false);
+                toast.success('Политика конфиденциальности принята');
+              }}
+              onDecline={() => {
+                toast.error('Для покупки необходимо принять политику конфиденциальности');
+                handleClose();
+              }}
+            />
+          ) : (
+            <>
+              {/* Успех */}
+              {status === 'success' && (
+                <div className="flex flex-col gap-4 py-2">
+                  {/* Иконка успеха */}
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <CheckCircle className="text-white" size={40} />
                       </div>
-                      <span className="text-sm font-mono text-zinc-500 pr-4">
-                        {getPriceForMethod(method.currency, method.symbol)}
+                      <div className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center border-2 border-black">
+                        <span className="text-xs">✓</span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white font-black text-xl uppercase tracking-tight">Заявка принята!</p>
+                      <p className="text-zinc-500 text-sm mt-1">«{productName}»</p>
+                    </div>
+                  </div>
+
+                  {/* Шаги что будет дальше */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-1">Что происходит дальше</p>
+
+                    <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                      <div className="w-8 h-8 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Bell size={14} className="text-yellow-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">Проверка оплаты</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Администратор проверит ваш чек. Обычно это занимает до 30 минут.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                      <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <User size={14} className="text-zinc-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">Ссылки появятся в профиле</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">После одобрения все ссылки и доступы к продукту будут в разделе <span className="text-white font-bold">«Мои покупки»</span> в вашем профиле.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                      <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <CheckCircle size={14} className="text-zinc-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">Получите доступ</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Нажмите кнопку <span className="text-white font-bold">«Получить продукт»</span> в профиле — вас добавят в закрытую группу.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Кнопки */}
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={goToProfile}
+                      className="flex-[2] h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all"
+                    >
+                      <span className="flex items-center gap-2">
+                        <User size={16} />
+                        {countdown !== null ? `Профиль через ${countdown}...` : 'Перейти в профиль'}
+                        <ArrowRight size={16} />
                       </span>
+                    </Button>
+                    <Button
+                      onClick={handleClose}
+                      variant="outline"
+                      className="flex-1 h-14 border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-2xl font-bold bg-transparent"
+                    >
+                      Закрыть
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Загрузка скриншота */}
+              {(status === 'screenshot' || status === 'sending') && (
+                <div className="space-y-4">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${screenshotPreview ? 'border-white/20' : 'border-zinc-700 hover:border-zinc-500'}`}
+                  >
+                    {screenshotPreview ? (
+                      <div className="space-y-3">
+                        <img src={screenshotPreview} alt="Скриншот" className="w-full max-h-48 object-contain rounded-xl" />
+                        <p className="text-zinc-500 text-xs">Нажмите, чтобы заменить</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 py-4">
+                        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mx-auto">
+                          <ImageIcon className="text-zinc-500" size={28} />
+                        </div>
+                        <div>
+                          <p className="text-white font-bold">Прикрепите скриншот оплаты</p>
+                          <p className="text-zinc-500 text-xs mt-1">JPG, PNG — нажмите для выбора</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+
+                  {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
+
+                  <Button
+                    onClick={handleSendScreenshot}
+                    disabled={!screenshot || status === 'sending'}
+                    className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 disabled:opacity-40"
+                  >
+                    {status === 'sending' ? (
+                      <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Отправляем...</span>
+                    ) : (
+                      <span className="flex items-center gap-2"><Upload size={18} /> Отправить заявку</span>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Ожидание Platega */}
+              {status === 'pending' && (
+                <div className="space-y-4">
+                  <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 space-y-3">
+                    <p className="text-zinc-300 text-sm font-medium text-center">Страница оплаты открыта в новой вкладке.</p>
+                    <div className="flex items-start gap-3 bg-white/3 rounded-xl p-3 border border-white/5">
+                      <User size={14} className="text-zinc-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-zinc-500 text-xs leading-relaxed">
+                        После оплаты нажмите кнопку ниже — мы проверим статус и перенаправим вас в <span className="text-white font-bold">профиль</span>, где появятся все ссылки на продукт.
+                      </p>
+                    </div>
+                  </div>
+                  {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
+                  <Button onClick={handleCheckStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
+                    <span className="flex items-center gap-2">
+                      <CheckCircle size={18} />
+                      Я оплатил — перейти в профиль
+                      <ArrowRight size={16} />
+                    </span>
+                  </Button>
+                  <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
+                    Открыть страницу оплаты снова
+                  </button>
+                </div>
+              )}
+
+              {/* Ручные реквизиты */}
+              {showRequisites && selectedManual && status === 'idle' && (
+                <div className="space-y-4">
+                  {selectedManual.requisites.map((req, i) => (
+                    <div key={i} className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                      <div>
+                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{req.label}</p>
+                        <p className="font-mono text-base tracking-wider text-white mt-1">{req.value}</p>
+                      </div>
+                      <button onClick={() => copyToClipboard(req.value)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ml-3"><Copy size={16} /></button>
                     </div>
                   ))}
+                  <div className="bg-zinc-900/30 p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p className="text-[11px] text-zinc-500 leading-relaxed">
+                      Переведите{" "}
+                      <span className="text-white font-bold">
+                        {getPriceForMethod(selectedManual.currency, selectedManual.symbol)}
+                      </span>{" "}
+                      по реквизитам выше и укажите в комментарии название товара.
+                    </p>
+                    {selectedManual.currency !== 'RUB' && (
+                      <p className="text-[10px] text-zinc-600">
+                        = {productPrice?.toLocaleString('ru-RU')} ₽ по актуальному курсу
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => window.open(selectedManual.infoUrl, '_blank')} className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors py-2">
+                    <ExternalLink size={14} /> Инструкция по оплате
+                  </button>
+                  <Button
+                    onClick={() => { setStatus('screenshot'); }}
+                    className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200"
+                  >
+                    Я оплатил — прикрепить скриншот
+                  </Button>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🌍 Другие страны (реквизиты)</p>
-                <div className="space-y-2">
-                  {MANUAL_METHODS.map((method) => (
-                    <div key={method.id} onClick={() => setSelectedMethod(method.id)}
-                      className={`relative flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
-                      <div className="flex-1 flex items-center gap-3 p-4">
-                        <span className="text-zinc-400">{method.icon}</span>
-                        <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
-                      </div>
-                      <span className="text-sm font-mono text-zinc-500 pr-2">
-                        {getPriceForMethod(method.currency, method.symbol)}
-                      </span>
-                      <button onClick={(e) => { e.stopPropagation(); window.open(method.infoUrl, '_blank'); }}
-                        className="p-3 mr-2 rounded-xl bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 transition-all" title="Инструкция">
-                        <ExternalLink size={14} />
-                      </button>
+              {/* Выбор метода */}
+              {!showRequisites && status === 'idle' && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🇷🇺 Россия (автооплата)</p>
+                    <div className="space-y-2">
+                      {PLATEGA_METHODS.map((method) => (
+                        <div key={method.id} onClick={() => setSelectedMethod(method.id)}
+                          className={`flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
+                          <div className="flex-1 flex items-center gap-3 p-4">
+                            <span className="text-zinc-400">{method.icon}</span>
+                            <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
+                            {method.badge && <span className="text-[10px] bg-white/10 text-zinc-400 px-2 py-0.5 rounded-full">{method.badge}</span>}
+                          </div>
+                          <span className="text-sm font-mono text-zinc-500 pr-4">
+                            {getPriceForMethod(method.currency, method.symbol)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🌍 Другие страны (реквизиты)</p>
+                    <div className="space-y-2">
+                      {MANUAL_METHODS.map((method) => (
+                        <div key={method.id} onClick={() => setSelectedMethod(method.id)}
+                          className={`relative flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
+                          <div className="flex-1 flex items-center gap-3 p-4">
+                            <span className="text-zinc-400">{method.icon}</span>
+                            <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
+                          </div>
+                          <span className="text-sm font-mono text-zinc-500 pr-2">
+                            {getPriceForMethod(method.currency, method.symbol)}
+                          </span>
+                          <button onClick={(e) => { e.stopPropagation(); window.open(method.infoUrl, '_blank'); }}
+                            className="p-3 mr-2 rounded-xl bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 transition-all" title="Инструкция">
+                            <ExternalLink size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
+                  {!profile && <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4"><p className="text-yellow-400 text-sm">Войдите в аккаунт для оплаты</p></div>}
+
+                  <Button onClick={handlePay} disabled={isLoading || !selectedMethod}
+                    className="w-full h-14 bg-white text-black font-black uppercase text-sm tracking-widest rounded-2xl hover:bg-zinc-200 transition-all active:scale-95">
+                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : `Оплатить ${priceInCurrency}`}
+                  </Button>
                 </div>
-              </div>
-
-              {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
-              {!profile && <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4"><p className="text-yellow-400 text-sm">Войдите в аккаунт для оплаты</p></div>}
-
-              <Button onClick={handlePay} disabled={isLoading || !selectedMethod}
-                className="w-full h-14 bg-white text-black font-black uppercase text-sm tracking-widest rounded-2xl hover:bg-zinc-200 transition-all active:scale-95">
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : `Оплатить ${priceInCurrency}`}
-              </Button>
-            </div>
+              )}
+            </>
           )}
 
         </DialogPrimitive.Content>
