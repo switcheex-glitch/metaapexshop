@@ -69,7 +69,7 @@ const products = [
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { isActive: isSaleActive, countdown, percent, getDiscountedPrice, hours, minutes, seconds } = useSale();
+  const { isActive: isSaleActive, countdown, percent, getDiscountedPrice } = useSale();
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -156,25 +156,13 @@ const Index = () => {
                     </p>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <div className="flex items-center gap-1 bg-black/40 border border-white/5 rounded-xl px-2 py-1.5 sm:px-3 sm:py-2">
-                    <Clock size={11} className="text-rose-400 flex-shrink-0" />
-                    <div className="flex items-center gap-1">
-                      {[
-                        { val: String(hours).padStart(2, '0'), label: 'ч' },
-                        { val: String(minutes).padStart(2, '0'), label: 'м' },
-                        { val: String(seconds).padStart(2, '0'), label: 'с' },
-                      ].map((unit, i) => (
-                        <React.Fragment key={i}>
-                          {i > 0 && <span className="text-zinc-600 font-black text-xs">:</span>}
-                          <div className="flex flex-col items-center">
-                            <span className="font-mono text-sm sm:text-base font-black text-white leading-none">{unit.val}</span>
-                            <span className="text-[7px] text-zinc-600 uppercase leading-none mt-0.5">{unit.label}</span>
-                          </div>
-                        </React.Fragment>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
+                    <Clock size={12} className="text-rose-400" />
+                    <span className="font-mono text-sm sm:text-lg font-black text-white tracking-wider">
+                      {countdown}
+                    </span>
                   </div>
-                  <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-0.5 uppercase tracking-widest text-center">до конца</p>
+                  <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-0.5 uppercase tracking-widest">до конца</p>
                 </div>
               </div>
             </div>
