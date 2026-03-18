@@ -145,15 +145,15 @@ const Index = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
-                      🌷 8 Марта — скидка {percent}%
+                        🎉 30 000 человек — скидка {percent}%
+                      </p>
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20">
+                        на всё
+                      </span>
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
+                      В честь 30к участников в нашей группе!
                     </p>
-                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20">
-                      на всё
-                    </span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
-                    Только сегодня на все продукты
-                  </p>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
