@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
 const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
 const TIERS = [
@@ -23,8 +22,6 @@ const TIERS = [
     price: 1490,
     color: 'cyan',
     image: '/assets/jarvis-industries-mk1.jpg',
-    chatId: '-1003743900341',
-    botToken: '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw',
     description: 'Базовый доступ к Jarvis Industries. Идеально для начала.',
     features: ['10 000 токенов', 'Базовые функции ИИ', 'Группа MK-I'],
     gradient: 'from-cyan-950/60 to-black',
@@ -41,8 +38,6 @@ const TIERS = [
     price: 3490,
     color: 'green',
     image: '/assets/jarvis-industries-mk2.jpg',
-    chatId: '-1003794537001',
-    botToken: '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k',
     description: 'Расширенный доступ с увеличенным лимитом токенов.',
     features: ['30 000 токенов', 'Расширенные функции ИИ', 'Группа MK-II', 'Приоритетная поддержка'],
     gradient: 'from-green-950/60 to-black',
@@ -60,8 +55,6 @@ const TIERS = [
     price: 5990,
     color: 'red',
     image: '/assets/jarvis-industries-mk3.jpg',
-    chatId: '-1003876790984',
-    botToken: '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4',
     description: 'Максимальный доступ для профессионального использования.',
     features: ['60 000 токенов', 'Все функции ИИ', 'Группа MK-III', 'VIP поддержка', 'Ранний доступ к обновлениям'],
     gradient: 'from-red-950/60 to-black',
@@ -185,7 +178,6 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
     const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY },
       body: fd,
     });
 

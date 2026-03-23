@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+const SECURE_API = `${SUPABASE_URL}/functions/v1/secure-api`;
 const ADMIN_PASSWORD = 'ApexAdmin2025';
 
 const TIER_COLORS: Record<string, { border: string; bg: string; badge: string; text: string; dot: string }> = {
@@ -98,21 +98,23 @@ const AdminJarvis: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const headers = {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      };
+      const res = await fetch(`${SECURE_API}?action=admin-load`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: sessionStorage.getItem('apex_admin_pwd') || '' }),
+      });
+      const data = await res.json();
 
-      const [purchasesRes, tokensRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/jarvis_industries_purchases?select=*,profiles(username,telegram_id)&order=purchased_at.desc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/jarvis_app_tokens?select=*&order=issued_at.desc`, { headers }),
-      ]);
+      if (data.error === 'Unauthorized') {
+        setAuthed(false);
+        sessionStorage.removeItem('apex_admin_authed');
+        sessionStorage.removeItem('apex_admin_pwd');
+        setLoading(false);
+        return;
+      }
 
-      const purchasesData = await purchasesRes.json();
-      const tokensData = await tokensRes.json();
-
-      if (Array.isArray(purchasesData)) setPurchases(purchasesData);
-      if (Array.isArray(tokensData)) setTokens(tokensData);
+      if (Array.isArray(data.purchases)) setPurchases(data.purchases);
+      if (Array.isArray(data.tokens)) setTokens(data.tokens);
       setLastUpdated(new Date());
     } catch (e) {
       console.error('AdminJarvis loadData error:', e);
@@ -143,6 +145,7 @@ const AdminJarvis: React.FC = () => {
     if (passwordInput === ADMIN_PASSWORD) {
       setAuthed(true);
       sessionStorage.setItem('apex_admin_authed', '1');
+      sessionStorage.setItem('apex_admin_pwd', passwordInput);
     } else {
       setPasswordError('Неверный пароль');
       setPasswordInput('');
@@ -153,10 +156,10 @@ const AdminJarvis: React.FC = () => {
     setRunningCheck(true);
     setCheckResult(null);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/check-subscriptions`, {
+      const res = await fetch(`${SECURE_API}?action=admin-check-subscriptions`, {
         method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-        body: '{}',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: sessionStorage.getItem('apex_admin_pwd') || '' }),
       });
       const data = await res.json();
       setCheckResult(

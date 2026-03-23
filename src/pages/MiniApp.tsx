@@ -6,7 +6,8 @@ import { Copy, CheckCircle, RefreshCw, Zap, Timer, Shield, ChevronRight, AlertTr
 // Telegram WebApp types handled via window.Telegram?.WebApp access
 
 const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+const SECURE_API = `${SUPABASE_URL}/functions/v1/secure-api`;
+const ISSUE_TOKEN_API = `${SUPABASE_URL}/functions/v1/jarvis-bot-issue-token`;
 
 const TIER_CONFIG: Record<string, {
   label: string; color: string; glow: string; border: string;
@@ -133,13 +134,6 @@ const MiniApp: React.FC = () => {
     const user = tg?.initDataUnsafe?.user;
     if (user) {
       setTgUser({ id: user.id, username: user.username || user.first_name || String(user.id) });
-    } else {
-      // Для тестирования в браузере — используем тестовый ID
-      const urlParams = new URLSearchParams(window.location.search);
-      const testId = urlParams.get('tg_id');
-      if (testId) {
-        setTgUser({ id: parseInt(testId), username: 'test_user' });
-      }
     }
   }, []);
 
@@ -148,60 +142,34 @@ const MiniApp: React.FC = () => {
 
     setScanActive(true);
     try {
-      // Ищем профиль по Telegram ID
-      const profileRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.@id_${tgUser.id}&select=id,username,telegram_id,is_blocked`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
-      const profiles = await profileRes.json();
+      // Используем secure-api вместо прямых запросов к БД
+      const res = await fetch(`${SECURE_API}?action=miniapp-load`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: tgUser.id }),
+      });
+      const data = await res.json();
 
-      if (!profiles?.length) {
+      if (data.screen === 'no_profile') {
         setScreen('no_profile');
         setScanActive(false);
         return;
       }
 
-      const profile = profiles[0];
-
-      // Загружаем активные подписки JI
-      const purchasesRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/jarvis_industries_purchases?profile_id=eq.${profile.id}&status=eq.approved&select=*&order=purchased_at.desc`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
-      const purchases = await purchasesRes.json();
-
-      const active = (purchases || []).filter((p: Subscription) =>
-        p.access_end && new Date(p.access_end).getTime() > Date.now()
-      );
-
-      if (!active.length) {
-        setScreen('no_access');
+      if (data.screen === 'blocked' || data.screen === 'no_access') {
+        setScreen(data.screen === 'blocked' ? 'no_profile' : 'no_access');
         setScanActive(false);
         return;
       }
 
-      // Загружаем токены для каждой подписки
-      const ids = active.map((p: Subscription) => `purchase_id.eq.${p.id}`).join(',');
-      const tokensRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/jarvis_app_tokens?is_active=eq.true&or=(${ids})&select=purchase_id,token`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
-      const tokens = await tokensRes.json();
-      const tokenMap: Record<string, string> = {};
-      (tokens || []).forEach((t: { purchase_id: string; token: string }) => {
-        tokenMap[t.purchase_id] = t.token;
-      });
-
-      const subsWithTokens = active.map((p: Subscription) => ({
-        ...p,
-        token: tokenMap[p.id] || null,
-      }));
-
-      setSubscriptions(subsWithTokens);
-      setScreen('dashboard');
-
-      if (subsWithTokens.length === 1) {
-        setSelectedSub(subsWithTokens[0]);
+      if (data.screen === 'dashboard' && data.subscriptions) {
+        setSubscriptions(data.subscriptions);
+        setScreen('dashboard');
+        if (data.subscriptions.length === 1) {
+          setSelectedSub(data.subscriptions[0]);
+        }
+      } else {
+        setScreen('error');
       }
     } catch (e) {
       console.error('MiniApp loadData error:', e);
@@ -234,10 +202,9 @@ const MiniApp: React.FC = () => {
     setLoadingToken(true);
     tg?.HapticFeedback?.impactOccurred('medium');
     try {
-      // Вызываем jarvis-bot edge function для выдачи токена
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-bot-issue-token`, {
+      const res = await fetch(ISSUE_TOKEN_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ purchaseId: sub.id, telegramId: tgUser?.id }),
       });
       const data = await res.json();

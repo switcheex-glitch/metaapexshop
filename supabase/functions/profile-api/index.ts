@@ -197,6 +197,59 @@ serve(async (req) => {
     });
   }
 
+  // ── GET APP TOKENS (для профиля) ───────────────────────────────────────────
+  if (action === 'get-app-tokens') {
+    const { profileId, purchaseIds } = await req.json();
+    if (!profileId || !Array.isArray(purchaseIds) || purchaseIds.length === 0) {
+      return new Response(JSON.stringify({ error: 'profileId and purchaseIds required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Проверяем что профиль существует
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', profileId)
+      .single();
+
+    if (!profile) {
+      return new Response(JSON.stringify({ error: 'Profile not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Проверяем что покупки принадлежат этому профилю
+    const { data: validPurchases } = await supabase
+      .from('jarvis_industries_purchases')
+      .select('id')
+      .eq('profile_id', profileId)
+      .in('id', purchaseIds);
+
+    const validIds = (validPurchases || []).map(p => p.id);
+
+    if (validIds.length === 0) {
+      return new Response(JSON.stringify({ tokens: {} }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: tokens } = await supabase
+      .from('jarvis_app_tokens')
+      .select('purchase_id, token')
+      .eq('is_active', true)
+      .in('purchase_id', validIds);
+
+    const tokenMap: Record<string, string> = {};
+    (tokens || []).forEach((t: { purchase_id: string; token: string }) => {
+      tokenMap[t.purchase_id] = t.token;
+    });
+
+    return new Response(JSON.stringify({ tokens: tokenMap }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   return new Response(JSON.stringify({ error: 'Unknown action' }), {
     status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

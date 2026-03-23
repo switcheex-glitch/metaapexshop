@@ -19,7 +19,6 @@ interface PaymentModalProps {
   containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
 const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
 const PLATEGA_METHODS = [
@@ -135,7 +134,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
 
     const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY },
       body: fd,
     });
 
@@ -158,7 +156,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     setErrorMsg('');
     const response = await fetch(`${SUPABASE_FN}/create-payment`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: productPrice || 0, productName, profileId: profile!.id, currency: 'RUB', paymentMethodId: selectedMethod }),
     });
     const data = await response.json();

@@ -10,12 +10,11 @@ import {
 } from '@/hooks/use-telegram';
 
 const PROFILE_API = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/profile-api';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
 
 const callApi = async (action: string, body: object) => {
   const res = await fetch(`${PROFILE_API}?action=${action}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   return res.json();

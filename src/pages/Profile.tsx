@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
 const PROFILE_API = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/profile-api';
 const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
@@ -65,19 +64,17 @@ const Profile = () => {
     return () => clearInterval(interval);
   }, [profile]);
 
-  const SUPABASE_REST = 'https://ldvlahtoiwimroycqcav.supabase.co/rest/v1';
-
   const loadPurchases = async () => {
     if (!profile) return;
     const res = await fetch(`${PROFILE_API}?action=get-purchases`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profileId: profile.id }),
     });
     const data = await res.json();
     if (data.purchases) {
       setPurchases(data.purchases as Purchase[]);
-      // Загружаем токены для JI-покупок
+      // Загружаем токены для JI-покупок через secure API
       const jiIds = (data.purchases as Purchase[])
         .filter((p: Purchase & { is_jarvis_industries?: boolean }) => p.is_jarvis_industries)
         .map((p: Purchase) => p.id);
@@ -89,16 +86,15 @@ const Profile = () => {
 
   const loadAppTokens = async (purchaseIds: string[]) => {
     try {
-      const filter = purchaseIds.map(id => `purchase_id.eq.${id}`).join(',');
-      const res = await fetch(
-        `${SUPABASE_REST}/jarvis_app_tokens?select=purchase_id,token&is_active=eq.true&or=(${filter})`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
+      // Используем profile-api вместо прямого доступа к БД
+      const res = await fetch(`${PROFILE_API}?action=get-app-tokens`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: profile!.id, purchaseIds }),
+      });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        const map: Record<string, string> = {};
-        data.forEach((t: { purchase_id: string; token: string }) => { map[t.purchase_id] = t.token; });
-        setAppTokens(map);
+      if (data.tokens && typeof data.tokens === 'object') {
+        setAppTokens(data.tokens);
       }
     } catch (e) {
       console.error('loadAppTokens error:', e);
@@ -115,7 +111,7 @@ const Profile = () => {
     setInvitingId(purchaseId);
     const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
     });
     const data = await res.json();
