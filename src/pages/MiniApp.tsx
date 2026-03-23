@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Copy, CheckCircle, RefreshCw, Zap, Timer, Shield, ChevronRight, AlertTriangle } from 'lucide-react';
+import MiniAppPurchase from '@/components/MiniAppPurchase';
 
 // Telegram WebApp types handled via window.Telegram?.WebApp access
 
@@ -101,6 +102,7 @@ const MiniApp: React.FC = () => {
   const [loadingToken, setLoadingToken] = useState(false);
   const [scanActive, setScanActive] = useState(false);
   const [bootText, setBootText] = useState('');
+  const [showPurchase, setShowPurchase] = useState(false);
 
   const tg = window.Telegram?.WebApp;
 
@@ -320,6 +322,10 @@ const MiniApp: React.FC = () => {
 
   // ── NO ACCESS ────────────────────────────────────────────────────────────
   if (screen === 'no_access') {
+    if (showPurchase && tgUser) {
+      return <MiniAppPurchase telegramId={tgUser.id} onBack={() => { setShowPurchase(false); handleRefresh(); }} />;
+    }
+
     return (
       <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center p-6 font-mono">
         <style>{`
@@ -372,12 +378,12 @@ const MiniApp: React.FC = () => {
             })}
           </div>
 
-          <a
-            href="https://t.me/ApexTechnology_bot"
+          <button
+            onClick={() => { setShowPurchase(true); tg?.HapticFeedback?.impactOccurred('medium'); }}
             className="block w-full py-4 rounded-2xl bg-white text-black font-black text-sm uppercase tracking-widest text-center active:scale-95 transition-all"
           >
-            Перейти в @ApexTechnology_bot
-          </a>
+            🛒 Купить подписку
+          </button>
         </div>
       </div>
     );
