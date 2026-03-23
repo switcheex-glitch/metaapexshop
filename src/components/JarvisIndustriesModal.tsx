@@ -200,50 +200,53 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
         const botToken = botRes.data?.value;
         const adminChatId = chatRes.data?.value;
 
+        console.log('[JI] botToken present:', !!botToken, '| adminChatId:', adminChatId);
+        console.log('[JI] botRes error:', botRes.error, '| chatRes error:', chatRes.error);
+
         if (botToken && adminChatId) {
-          const shortId = data.id.replace(/-/g, '').substring(0, 16);
-          const caption =
-            `🧾 *НОВАЯ ЗАЯВКА — JARVIS INDUSTRIES* 🏭\n\n` +
-            `👤 Пользователь: *${profile.username}*\n` +
-            `📱 Telegram ID: \`${profile.telegram_id}\`\n` +
-            `📦 Тариф: *${selectedTier.fullName}*\n` +
-            `⚡ Токены: *${selectedTier.tokens.toLocaleString('ru-RU')}*\n` +
-            `💰 Клиент платит: *${selectedTier.price.toLocaleString('ru-RU')} ₽*\n` +
-            `💳 Метод: *${methodName}*\n` +
-            `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
-            `🆔 ID заявки: \`${data.id}\`\n` +
-            `📋 Таблица: jarvisindustriespurchases`;
-
-          const inlineKeyboard = {
-            inline_keyboard: [
-              [
-                { text: '✅ Одобрить', url: `${APPROVE_FN}?action=ji_ok&id=${data.id}` },
-                { text: '❌ Отклонить', url: `${APPROVE_FN}?action=ji_no&id=${data.id}` },
-              ],
-              [
-                { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${data.id}` },
-              ],
-            ],
-          };
-
           const adminIds = adminChatId.split(',').map((id: string) => id.trim()).filter(Boolean);
 
           for (const chatId of adminIds) {
             const fd = new FormData();
             fd.append('chat_id', chatId);
             fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
-            fd.append('caption', caption);
-            fd.append('parse_mode', 'Markdown');
-            fd.append('reply_markup', JSON.stringify(inlineKeyboard));
+            fd.append('caption',
+              `🧾 НОВАЯ ЗАЯВКА — JARVIS INDUSTRIES 🏭\n\n` +
+              `👤 Пользователь: ${profile.username}\n` +
+              `📱 Telegram ID: ${profile.telegram_id}\n` +
+              `📦 Тариф: ${selectedTier.fullName}\n` +
+              `⚡ Токены: ${selectedTier.tokens.toLocaleString('ru-RU')}\n` +
+              `💰 Клиент платит: ${selectedTier.price.toLocaleString('ru-RU')} руб\n` +
+              `💳 Метод: ${methodName}\n` +
+              `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
+              `ID заявки: ${data.id}\n` +
+              `Таблица: jarvisindustriespurchases`
+            );
+            // Убираем parse_mode чтобы избежать ошибок форматирования
+            fd.append('reply_markup', JSON.stringify({
+              inline_keyboard: [
+                [
+                  { text: '✅ Одобрить', url: `${APPROVE_FN}?action=ji_ok&id=${data.id}` },
+                  { text: '❌ Отклонить', url: `${APPROVE_FN}?action=ji_no&id=${data.id}` },
+                ],
+                [
+                  { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${data.id}` },
+                ],
+              ],
+            }));
 
-            await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+            const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
               method: 'POST',
               body: fd,
             });
+            const tgData = await tgRes.json();
+            console.log('[JI] Telegram sendPhoto response:', tgData.ok, tgData.description || tgData.error_code);
           }
+        } else {
+          console.warn('[JI] Missing botToken or adminChatId — skipping Telegram notification');
         }
       } catch (e) {
-        console.warn('Telegram photo send failed (non-critical):', e);
+        console.warn('[JI] Telegram photo send failed:', e);
       }
 
       setStep('success');

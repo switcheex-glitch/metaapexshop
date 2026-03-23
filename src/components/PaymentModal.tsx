@@ -178,51 +178,50 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
         const botToken = botRes.data?.value;
         const adminChatId = chatRes.data?.value;
 
+        console.log('[PM] botToken present:', !!botToken, '| adminChatId:', adminChatId);
+        console.log('[PM] botRes error:', botRes.error, '| chatRes error:', chatRes.error);
+
         if (botToken && adminChatId && purchaseId) {
-          const shortId = purchaseId.replace(/-/g, '').substring(0, 16);
-          const prefix = isJI ? 'ji_ok' : 'ok';
-          const prefixNo = isJI ? 'ji_no' : 'no';
-
-          const caption =
-            `🧾 *НОВАЯ ЗАЯВКА НА ОПЛАТУ*${isJI ? ' 🏭' : ''}\n\n` +
-            `👤 Пользователь: *${profile.username}*\n` +
-            `📱 Telegram ID: \`${profile.telegram_id}\`\n` +
-            `📦 Товар: *${productName}*\n` +
-            `💳 Метод: *${methodName}*\n` +
-            `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
-            `💰 Клиент платит: *${(productPrice || 0).toLocaleString('ru-RU')} ₽*\n\n` +
-            `🆔 ID заявки: \`${purchaseId}\``;
-
-          const inlineKeyboard = {
-            inline_keyboard: [
-              [
-                { text: '✅ Одобрить', url: `${APPROVE_FN}?action=${isJI ? 'ji_ok' : 'ok'}&id=${purchaseId}` },
-                { text: '❌ Отклонить', url: `${APPROVE_FN}?action=${isJI ? 'ji_no' : 'no'}&id=${purchaseId}` },
-              ],
-              [
-                { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${purchaseId}` },
-              ],
-            ],
-          };
-
           const adminIds = adminChatId.split(',').map((id: string) => id.trim()).filter(Boolean);
 
           for (const chatId of adminIds) {
             const fd = new FormData();
             fd.append('chat_id', chatId);
             fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
-            fd.append('caption', caption);
-            fd.append('parse_mode', 'Markdown');
-            fd.append('reply_markup', JSON.stringify(inlineKeyboard));
+            fd.append('caption',
+              `🧾 НОВАЯ ЗАЯВКА НА ОПЛАТУ${isJI ? ' 🏭' : ''}\n\n` +
+              `👤 Пользователь: ${profile.username}\n` +
+              `📱 Telegram ID: ${profile.telegram_id}\n` +
+              `📦 Товар: ${productName}\n` +
+              `💳 Метод: ${methodName}\n` +
+              `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
+              `💰 Клиент платит: ${(productPrice || 0).toLocaleString('ru-RU')} руб\n\n` +
+              `ID заявки: ${purchaseId}`
+            );
+            fd.append('reply_markup', JSON.stringify({
+              inline_keyboard: [
+                [
+                  { text: '✅ Одобрить', url: `${APPROVE_FN}?action=${isJI ? 'ji_ok' : 'ok'}&id=${purchaseId}` },
+                  { text: '❌ Отклонить', url: `${APPROVE_FN}?action=${isJI ? 'ji_no' : 'no'}&id=${purchaseId}` },
+                ],
+                [
+                  { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${purchaseId}` },
+                ],
+              ],
+            }));
 
-            await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+            const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
               method: 'POST',
               body: fd,
             });
+            const tgData = await tgRes.json();
+            console.log('[PM] Telegram sendPhoto response:', tgData.ok, tgData.description || tgData.error_code);
           }
+        } else {
+          console.warn('[PM] Missing botToken or adminChatId — skipping Telegram notification');
         }
       } catch (e) {
-        console.warn('Telegram photo send failed (non-critical):', e);
+        console.warn('[PM] Telegram photo send failed:', e);
       }
 
       setStatus('success');
