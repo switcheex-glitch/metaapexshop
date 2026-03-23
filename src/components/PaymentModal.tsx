@@ -204,19 +204,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
   const callPlatega = async () => {
     setIsLoading(true);
     setErrorMsg('');
-    const response = await fetch(`${SUPABASE_FN}/create-payment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: productPrice || 0, productName, profileId: profile!.id, currency: 'RUB', paymentMethodId: selectedMethod }),
-    });
-    const data = await response.json();
-    if (!response.ok || data?.error) {
-      setErrorMsg(data?.error || 'Ошибка создания платежа');
-    } else {
-      setPaymentUrl(data.redirect);
-      setTransactionId(data.transactionId);
-      setStatus('pending');
-      window.open(data.redirect, '_blank');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${SUPABASE_FN}/create-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+        },
+        body: JSON.stringify({ amount: productPrice || 0, productName, profileId: profile!.id, currency: 'RUB', paymentMethodId: selectedMethod }),
+      });
+      const data = await response.json();
+      console.log('[callPlatega] response:', response.status, data);
+      if (!response.ok || data?.error) {
+        setErrorMsg(data?.error || `Ошибка создания платежа (${response.status})`);
+      } else {
+        setPaymentUrl(data.redirect);
+        setTransactionId(data.transactionId);
+        setStatus('pending');
+        window.open(data.redirect, '_blank');
+      }
+    } catch (e) {
+      console.error('[callPlatega] error:', e);
+      setErrorMsg('Ошибка соединения с платёжным сервисом');
     }
     setIsLoading(false);
   };

@@ -28,6 +28,8 @@ serve(async (req) => {
     const PLATEGA_SECRET = Deno.env.get('PLATEGA_SECRET');
     const PLATEGA_MERCHANT_ID = Deno.env.get('PLATEGA_MERCHANT_ID');
 
+    console.log("[create-payment] PLATEGA_SECRET present:", !!PLATEGA_SECRET, "| PLATEGA_MERCHANT_ID present:", !!PLATEGA_MERCHANT_ID);
+
     if (!PLATEGA_SECRET || !PLATEGA_MERCHANT_ID) {
       console.error("[create-payment] Missing Platega credentials");
       return new Response(JSON.stringify({ error: 'Платёжный сервис не настроен' }), {
@@ -36,7 +38,10 @@ serve(async (req) => {
       });
     }
 
-    const { amount, productName, profileId, currency = 'RUB', paymentMethodId = 'kaspi' } = await req.json();
+    const body = await req.json();
+    const { amount, productName, profileId, currency = 'RUB', paymentMethodId = 'kaspi' } = body;
+
+    console.log("[create-payment] Request:", JSON.stringify(body));
 
     if (!amount || !productName || !profileId) {
       return new Response(JSON.stringify({ error: 'Не указаны обязательные параметры' }), {
@@ -47,16 +52,19 @@ serve(async (req) => {
 
     const paymentMethod = PAYMENT_METHOD_MAP[paymentMethodId] ?? 12;
 
-    console.log("[create-payment] Creating payment", { amount, productName, profileId, currency, paymentMethod });
+    console.log("[create-payment] Creating payment", { amount, productName, profileId, currency, paymentMethod, paymentMethodId });
 
-    const body = {
+    const requestBody = {
       paymentMethod,
       paymentDetails: { amount: Number(amount), currency },
       description: `Покупка: ${productName}`,
-      return: 'https://vibetechnology.app/payment-success',
-      failedUrl: 'https://vibetechnology.app/payment-failed',
+      return: 'https://testzbt9.vercel.app/profile',
+      failedUrl: 'https://testzbt9.vercel.app/',
       payload: JSON.stringify({ profileId, productName, productId: productName.toLowerCase().replace(/\s+/g, '_'), price: Number(amount) }),
     };
+
+    console.log("[create-payment] Sending to Platega:", JSON.stringify(requestBody));
+    console.log("[create-payment] MerchantId:", PLATEGA_MERCHANT_ID);
 
     const response = await fetch('https://app.platega.io/transaction/process', {
       method: 'POST',
@@ -65,14 +73,23 @@ serve(async (req) => {
         'X-MerchantId': PLATEGA_MERCHANT_ID,
         'X-Secret': PLATEGA_SECRET,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
     });
 
-    const data = await response.json();
-    console.log("[create-payment] Platega response", { status: response.status, data });
+    const responseText = await response.text();
+    console.log("[create-payment] Platega raw response:", response.status, responseText);
+
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      data = { message: responseText };
+    }
+
+    console.log("[create-payment] Platega parsed response:", { status: response.status, data });
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.message || 'Ошибка создания платежа' }), {
+      return new Response(JSON.stringify({ error: data.message || data.error || `Ошибка Platega: ${response.status}` }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -85,7 +102,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[create-payment] Error:", error);
-    return new Response(JSON.stringify({ error: 'Внутренняя ошибка сервера' }), {
+    return new Response(JSON.stringify({ error: 'Внутренняя ошибка сервера: ' + String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

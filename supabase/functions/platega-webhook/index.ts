@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-merchantid, x-secret',
 };
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN')!;
@@ -12,7 +12,7 @@ async function sendTelegramMessage(chatId: string, text: string) {
   const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+    body: JSON.stringify({ chat_id: chatId, text }),
   });
   const data = await res.json();
   console.log("[platega-webhook] Telegram sendMessage:", { chatId, ok: data.ok, error: data.description });
@@ -23,25 +23,43 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Логируем все входящие заголовки для диагностики
+  const allHeaders: Record<string, string> = {};
+  req.headers.forEach((v, k) => { allHeaders[k] = v; });
+  console.log("[platega-webhook] Incoming headers:", JSON.stringify(allHeaders));
+
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const ADMIN_CHAT_ID = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID') || '';
     const PLATEGA_SECRET = Deno.env.get('PLATEGA_SECRET')!;
+    const PLATEGA_MERCHANT_ID = Deno.env.get('PLATEGA_MERCHANT_ID')!;
 
-    const body = await req.json();
-    console.log("[platega-webhook] Received webhook:", JSON.stringify(body));
+    const bodyText = await req.text();
+    console.log("[platega-webhook] Raw body:", bodyText);
 
-    // Platega присылает: { id, status, payload, amount, ... }
-    const { id: transactionId, status, payload } = body;
-
-    // Проверяем подпись если есть (безопасность)
-    // Platega может присылать X-Secret в заголовке
-    const secret = req.headers.get('X-Secret') || req.headers.get('x-secret');
-    if (secret && secret !== PLATEGA_SECRET) {
-      console.error("[platega-webhook] Invalid secret!");
-      return new Response('Unauthorized', { status: 401 });
+    let body: any;
+    try {
+      body = JSON.parse(bodyText);
+    } catch {
+      console.error("[platega-webhook] Failed to parse body");
+      return new Response('ok', { status: 200 });
     }
+
+    console.log("[platega-webhook] Parsed body:", JSON.stringify(body));
+
+    // Проверяем подпись — Platega присылает X-Secret и X-MerchantId
+    const incomingSecret = req.headers.get('X-Secret') || req.headers.get('x-secret');
+    const incomingMerchantId = req.headers.get('X-MerchantId') || req.headers.get('x-merchantid');
+
+    console.log("[platega-webhook] X-Secret match:", incomingSecret === PLATEGA_SECRET, "| X-MerchantId match:", incomingMerchantId === PLATEGA_MERCHANT_ID);
+
+    if (incomingSecret && incomingSecret !== PLATEGA_SECRET) {
+      console.error("[platega-webhook] Invalid X-Secret!");
+      return new Response('ok', { status: 200 }); // всегда 200 чтобы Platega не ретраил
+    }
+
+    const { id: transactionId, status, payload, amount } = body;
 
     if (status !== 'CONFIRMED') {
       console.log("[platega-webhook] Status is not CONFIRMED:", status, "— skipping");
@@ -52,29 +70,24 @@ serve(async (req) => {
     let profileId: string | null = null;
     let productName: string | null = null;
     let productId: string | null = null;
-    let price: number = 0;
+    let price: number = amount || 0;
 
     try {
-      const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+      const parsed = typeof payload === 'string' ? JSON.parse(payload) : (payload || {});
       profileId = parsed.profileId;
       productName = parsed.productName;
       productId = parsed.productId;
-      price = parsed.price || body.amount || 0;
+      if (parsed.price) price = parsed.price;
     } catch (e) {
       console.error("[platega-webhook] Failed to parse payload:", payload, e);
     }
 
-    // Если price не в payload — берём из тела webhook
-    if (!price && body.amount) {
-      price = body.amount;
-    }
-
     if (!profileId || !productName) {
-      console.error("[platega-webhook] Missing profileId or productName in payload:", payload);
-      return new Response('Missing data', { status: 400 });
+      console.error("[platega-webhook] Missing profileId or productName. payload:", payload);
+      return new Response('ok', { status: 200 });
     }
 
-    console.log("[platega-webhook] Processing CONFIRMED payment:", { transactionId, profileId, productName, price });
+    console.log("[platega-webhook] Processing CONFIRMED:", { transactionId, profileId, productName, price });
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -120,25 +133,24 @@ serve(async (req) => {
 
     if (purchaseError || !purchase) {
       console.error("[platega-webhook] Error saving purchase:", purchaseError);
-      return new Response('DB error', { status: 500 });
+      return new Response('ok', { status: 200 });
     }
 
     console.log("[platega-webhook] Purchase saved:", purchase.id);
 
-    // Уведомляем всех админов
+    // Уведомляем админов
     if (ADMIN_CHAT_ID) {
       const adminIds = ADMIN_CHAT_ID.split(',').map((id: string) => id.trim()).filter(Boolean);
       const msg =
-        `✅ *АВТООПЛАТА ПОДТВЕРЖДЕНА (Platega Webhook)*\n\n` +
-        `👤 Пользователь: *${username}*\n` +
-        `📱 Telegram ID: \`${telegramId}\`\n` +
-        `📦 Товар: *${productName}*\n` +
-        `💰 Сумма: *${price} ₽*\n` +
-        `💳 Метод: *Platega (СБП / Карты РФ)*\n` +
+        `✅ АВТООПЛАТА ПОДТВЕРЖДЕНА (Platega)\n\n` +
+        `👤 Пользователь: ${username}\n` +
+        `📱 Telegram ID: ${telegramId}\n` +
+        `📦 Товар: ${productName}\n` +
+        `💰 Сумма: ${price} руб\n` +
+        `💳 Метод: Platega (СБП / Карты РФ / Крипто)\n` +
         `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}\n\n` +
-        `🆔 ID покупки: \`${purchase.id}\`\n` +
-        `🆔 ID транзакции: \`${transactionId}\`\n` +
-        `🤖 _Платёж подтверждён автоматически через Platega Webhook_`;
+        `ID покупки: ${purchase.id}\n` +
+        `ID транзакции: ${transactionId}`;
 
       for (const adminId of adminIds) {
         await sendTelegramMessage(adminId, msg);
@@ -152,6 +164,7 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
         },
         body: JSON.stringify({ purchaseId: purchase.id }),
       });
@@ -165,6 +178,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[platega-webhook] Error:", error);
-    return new Response('ok', { status: 200 });
+    return new Response('ok', { status: 200 }); // всегда 200
   }
 });
