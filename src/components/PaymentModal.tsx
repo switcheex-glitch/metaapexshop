@@ -9,6 +9,7 @@ import { useCurrency } from "@/hooks/use-currency";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -120,34 +121,98 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     setErrorMsg('');
 
     const countryStr = [...PLATEGA_METHODS, ...MANUAL_METHODS].find(m => m.id === selectedMethod)?.country || '';
+    const methodName = METHOD_NAMES[selectedMethod || ''] || selectedMethod || '';
+    const isJI = productId?.startsWith('jarvis_industries_');
 
-    const fd = new FormData();
-    fd.append('screenshot', screenshot);
-    fd.append('productName', productName);
-    fd.append('productId', productId || productName.toLowerCase().replace(/\s+/g, '_'));
-    fd.append('rubAmount', String(productPrice || 0));
-    fd.append('country', countryStr);
-    fd.append('username', profile.username);
-    fd.append('telegramId', profile.telegram_id);
-    fd.append('paymentMethod', METHOD_NAMES[selectedMethod || ''] || selectedMethod || '');
-    fd.append('profileId', profile.id);
+    try {
+      // 1. Загружаем скриншот в Supabase Storage
+      let screenshotUrl: string | null = null;
+      try {
+        const ext = screenshot.name.split('.').pop() || 'jpg';
+        const fileName = `${profile.id}_${Date.now()}.${ext}`;
+        const { data: uploadData } = await supabase.storage
+          .from('screenshots')
+          .upload(fileName, screenshot, { contentType: screenshot.type });
+        if (uploadData) {
+          const { data: urlData } = supabase.storage.from('screenshots').getPublicUrl(fileName);
+          screenshotUrl = urlData?.publicUrl || null;
+        }
+      } catch (e) {
+        console.warn('Screenshot upload failed, continuing without it:', e);
+      }
 
-    const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
-      method: 'POST',
-      body: fd,
-    });
+      // 2. Создаём заявку в БД
+      let purchaseId: string | null = null;
 
-    const data = await response.json();
-    if (!response.ok || data?.error) {
-      setErrorMsg(data?.error || 'Ошибка отправки');
-      setStatus('screenshot');
-    } else {
+      if (isJI) {
+        const tier = productId!.replace('jarvis_industries_', '');
+        const { data, error } = await supabase
+          .from('jarvis_industries_purchases')
+          .insert({
+            profile_id: profile.id,
+            tier,
+            tier_name: productName,
+            tokens: 0,
+            price: productPrice || 0,
+            status: 'pending',
+            payment_method: methodName,
+            username: profile.username,
+            telegram_id: profile.telegram_id,
+            screenshot_url: screenshotUrl,
+            purchased_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error || !data) throw new Error(error?.message || 'Ошибка создания заявки');
+        purchaseId = data.id;
+      } else {
+        const { data, error } = await supabase
+          .from('purchases')
+          .insert({
+            profile_id: profile.id,
+            product_id: productId || productName.toLowerCase().replace(/\s+/g, '_'),
+            product_name: productName,
+            price: productPrice || 0,
+            status: 'pending',
+            payment_method: methodName,
+            screenshot_url: screenshotUrl,
+          })
+          .select()
+          .single();
+
+        if (error || !data) throw new Error(error?.message || 'Ошибка создания заявки');
+        purchaseId = data.id;
+      }
+
+      // 3. Пробуем отправить уведомление в Telegram (не критично если не работает)
+      try {
+        const fd = new FormData();
+        fd.append('screenshot', screenshot);
+        fd.append('productName', productName);
+        fd.append('productId', productId || productName.toLowerCase().replace(/\s+/g, '_'));
+        fd.append('rubAmount', String(productPrice || 0));
+        fd.append('country', countryStr);
+        fd.append('username', profile.username);
+        fd.append('telegramId', profile.telegram_id);
+        fd.append('paymentMethod', methodName);
+        fd.append('profileId', profile.id);
+
+        await fetch(`${SUPABASE_FN}/send-payment-proof`, {
+          method: 'POST',
+          body: fd,
+        });
+      } catch (e) {
+        console.warn('Telegram notification failed (non-critical):', e);
+      }
+
       setStatus('success');
-      // Автоматически перенаправляем в профиль через 3 секунды
-      setTimeout(() => {
-        onClose();
-        navigate('/profile');
-      }, 3000);
+      setTimeout(() => { onClose(); navigate('/profile'); }, 3000);
+
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Ошибка отправки';
+      setErrorMsg(msg);
+      setStatus('screenshot');
     }
   };
 
