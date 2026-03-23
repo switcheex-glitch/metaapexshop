@@ -6,8 +6,11 @@ import { Headphones, Newspaper, User, Gift, Clock } from "lucide-react";
 import ProductCard from '@/components/ProductCard';
 import PaymentModal from '@/components/PaymentModal';
 import InfoModal from '@/components/InfoModal';
+import JarvisIndustriesModal from '@/components/JarvisIndustriesModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useSale } from '@/hooks/use-sale';
+
+const JARVIS_INDUSTRIES_ID = 'jarvis-industries';
 
 const products = [
   {
@@ -17,6 +20,15 @@ const products = [
     fullInfo: 'Голосовой помощник с встроенным искусственным интеллектом.\n\nПонимает контекст, отвечает осмысленно, работает как полноценный цифровой ассистент.\n\nПлюс расширенный редактор команд для глубокой кастомизации.',
     price: '6900',
     image: '/assets/jarvis-max.jpg',
+    isComingSoon: false
+  },
+  {
+    id: JARVIS_INDUSTRIES_ID,
+    name: 'Jarvis Industries',
+    description: 'Профессиональная платформа с тремя тарифами MK-I, MK-II, MK-III.',
+    fullInfo: 'Jarvis Industries — профессиональная платформа с тремя тарифами.\n\nMK-I: 10 000 токенов — базовый доступ.\nMK-II: 30 000 токенов — расширенный доступ.\nMK-III: 60 000 токенов — максимальный доступ.\n\nКаждый тариф открывает доступ в отдельную закрытую группу.',
+    price: '1490',
+    image: '/assets/jarvis-industries-mk1.jpg',
     isComingSoon: false
   },
   {
@@ -74,8 +86,13 @@ const Index = () => {
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isJarvisIndustriesOpen, setIsJarvisIndustriesOpen] = useState(false);
 
-  const handlePay = (productName: string) => {
+  const handlePay = (productName: string, productId: string) => {
+    if (productId === JARVIS_INDUSTRIES_ID) {
+      setIsJarvisIndustriesOpen(true);
+      return;
+    }
     setSelectedProduct(productName);
     setIsPayModalOpen(true);
   };
@@ -100,9 +117,7 @@ const Index = () => {
         ref={containerRef}
         className="
           flex flex-col flex-1
-          /* Мобиль: полный экран без рамки */
           w-full h-screen
-          /* ПК: центрированный iPad frame */
           sm:relative sm:mx-auto sm:my-auto sm:w-full sm:max-w-[1024px] sm:h-[768px]
           sm:rounded-[40px] sm:border-[12px] sm:border-zinc-900
           sm:shadow-[0_0_100px_rgba(0,0,0,0.8)]
@@ -145,15 +160,15 @@ const Index = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
-                        🎉 30 000 человек — скидка {percent}%
-                      </p>
-                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20">
-                        на всё
-                      </span>
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
-                      В честь 30к участников в нашей группе!
+                      🎉 30 000 человек — скидка {percent}%
                     </p>
+                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20">
+                      на всё
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
+                    В честь 30к участников в нашей группе!
+                  </p>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
@@ -187,7 +202,7 @@ const Index = () => {
                   price={product.price}
                   image={product.image}
                   isComingSoon={product.isComingSoon}
-                  onPay={() => handlePay(product.name)}
+                  onPay={() => handlePay(product.name, product.id)}
                   onInfo={() => handleInfo(product.name)}
                   salePrice={discountedPrice}
                 />
@@ -228,6 +243,11 @@ const Index = () => {
         onClose={() => setIsInfoModalOpen(false)}
         product={currentProduct}
         containerRef={containerRef}
+      />
+
+      <JarvisIndustriesModal
+        isOpen={isJarvisIndustriesOpen}
+        onClose={() => setIsJarvisIndustriesOpen(false)}
       />
     </div>
   );

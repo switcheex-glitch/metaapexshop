@@ -1,0 +1,519 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { X, CheckCircle, Loader2, Upload, ImageIcon, Copy, ExternalLink, ArrowRight, User, Bell, CreditCard, Wallet, Landmark, Bitcoin, Smartphone, ChevronRight, Zap } from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/hooks/use-currency";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
+
+const TIERS = [
+  {
+    id: 'mk1',
+    name: 'MK-I',
+    fullName: 'Jarvis Industries MK-I',
+    label: 'Низкий тариф',
+    tokens: 10000,
+    price: 1490,
+    color: 'cyan',
+    image: '/assets/jarvis-industries-mk1.jpg',
+    chatId: '-1003743900341',
+    botToken: '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw',
+    description: 'Базовый доступ к Jarvis Industries. Идеально для начала.',
+    features: ['10 000 токенов', 'Базовые функции ИИ', 'Группа MK-I'],
+    gradient: 'from-cyan-950/60 to-black',
+    border: 'border-cyan-500/30',
+    badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+    glow: 'shadow-cyan-500/10',
+  },
+  {
+    id: 'mk2',
+    name: 'MK-II',
+    fullName: 'Jarvis Industries MK-II',
+    label: 'Средний тариф',
+    tokens: 30000,
+    price: 3490,
+    color: 'green',
+    image: '/assets/jarvis-industries-mk2.jpg',
+    chatId: '-1003794537001',
+    botToken: '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k',
+    description: 'Расширенный доступ с увеличенным лимитом токенов.',
+    features: ['30 000 токенов', 'Расширенные функции ИИ', 'Группа MK-II', 'Приоритетная поддержка'],
+    gradient: 'from-green-950/60 to-black',
+    border: 'border-green-500/30',
+    badge: 'bg-green-500/20 text-green-300 border-green-500/30',
+    glow: 'shadow-green-500/10',
+    popular: true,
+  },
+  {
+    id: 'mk3',
+    name: 'MK-III',
+    fullName: 'Jarvis Industries MK-III',
+    label: 'Высокий тариф',
+    tokens: 60000,
+    price: 5990,
+    color: 'red',
+    image: '/assets/jarvis-industries-mk3.jpg',
+    chatId: '-1003876790984',
+    botToken: '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4',
+    description: 'Максимальный доступ для профессионального использования.',
+    features: ['60 000 токенов', 'Все функции ИИ', 'Группа MK-III', 'VIP поддержка', 'Ранний доступ к обновлениям'],
+    gradient: 'from-red-950/60 to-black',
+    border: 'border-red-500/30',
+    badge: 'bg-red-500/20 text-red-300 border-red-500/30',
+    glow: 'shadow-red-500/10',
+  },
+];
+
+const PLATEGA_METHODS = [
+  { id: 'sbp',      name: 'СБП (Россия)',        icon: <Smartphone className="w-4 h-4" />, badge: 'Быстро' },
+  { id: 'cards_ru', name: 'Карты РФ (Мир/Visa)', icon: <CreditCard className="w-4 h-4" />, badge: null },
+  { id: 'crypto',   name: 'Криптовалюта',         icon: <Bitcoin className="w-4 h-4" />,    badge: 'Авто' },
+];
+
+const MANUAL_METHODS = [
+  { id: 'kaspi',  name: 'Kaspi (Visa)',  icon: <Landmark className="w-4 h-4" />,   country: '🇰🇿', currency: 'KZT', symbol: '₸',  rate: 4.8,  infoUrl: 'https://telegra.ph/Oplata-Kaspi-10-31',      requisites: [{ label: 'Kaspi / РБ — Фарида Л.',  value: '4400 4303 0558 1131' }] },
+  { id: 'mono',   name: 'MonoBank',      icon: <CreditCard className="w-4 h-4" />, country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'MonoBank — Богдан Р.',    value: '4441111066552765' }] },
+  { id: 'abank',  name: 'АБанк',         icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'АБанк — Богдан Р.',       value: '4323347363236206' }] },
+  { id: 'pumb',   name: 'Пумб',          icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'Пумб — Богдан Р.',        value: '5355280043078623' }] },
+  { id: 'rb',     name: 'Оплата с РБ',   icon: <CreditCard className="w-4 h-4" />, country: '🇧🇾', currency: 'BYN', symbol: 'Br', rate: 0.035,infoUrl: 'https://telegra.ph/Oplata-s-belarus-10-31',  requisites: [{ label: 'Kaspi Visa — Фарида Л.', value: '4400 4303 0558 1131' }] },
+  { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in@mail.ru' }] },
+];
+
+interface JarvisIndustriesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+type Step = 'privacy' | 'tier' | 'payment' | 'requisites' | 'screenshot' | 'sending' | 'success';
+
+const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, onClose }) => {
+  const { profile } = useAuth();
+  const { convertPrice, getSymbol, convertTo } = useCurrency();
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [step, setStep] = useState<Step>('privacy');
+  const [selectedTier, setSelectedTier] = useState<typeof TIERS[0] | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const accepted = localStorage.getItem('vibe_privacy_policy_accepted') === '1';
+    setStep(accepted ? 'tier' : 'privacy');
+    setSelectedTier(null);
+    setSelectedMethod(null);
+    setScreenshot(null);
+    setScreenshotPreview(null);
+    setErrorMsg('');
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (step === 'success') {
+      setCountdown(3);
+      const interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev === null || prev <= 1) { clearInterval(interval); return null; }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
+
+  const handleClose = () => {
+    setStep('tier');
+    setSelectedTier(null);
+    setSelectedMethod(null);
+    setScreenshot(null);
+    setScreenshotPreview(null);
+    setErrorMsg('');
+    onClose();
+  };
+
+  const goToProfile = () => {
+    handleClose();
+    navigate('/profile');
+  };
+
+  const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
+
+  const getPriceForMethod = (currency: string, symbol: string): string => {
+    if (!selectedTier) return '';
+    if (currency !== 'RUB') {
+      return `${convertTo(selectedTier.price, currency as any)} ${symbol}`;
+    }
+    return `${selectedTier.price.toLocaleString('ru-RU')} ₽`;
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScreenshot(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setScreenshotPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSendScreenshot = async () => {
+    if (!screenshot || !profile || !selectedTier) return;
+    setStep('sending');
+    setErrorMsg('');
+
+    const fd = new FormData();
+    fd.append('screenshot', screenshot);
+    fd.append('productName', selectedTier.fullName);
+    fd.append('productId', `jarvis_industries_${selectedTier.id}`);
+    fd.append('rubAmount', String(selectedTier.price));
+    fd.append('country', selectedManual?.country || '🇷🇺');
+    fd.append('username', profile.username);
+    fd.append('telegramId', profile.telegram_id);
+    fd.append('paymentMethod', selectedMethod || '');
+    fd.append('profileId', profile.id);
+    fd.append('tier', selectedTier.id);
+    fd.append('tokens', String(selectedTier.tokens));
+
+    const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY },
+      body: fd,
+    });
+
+    const data = await response.json();
+    if (!response.ok || data?.error) {
+      setErrorMsg(data?.error || 'Ошибка отправки');
+      setStep('screenshot');
+    } else {
+      setStep('success');
+      setTimeout(() => goToProfile(), 3000);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Скопировано!');
+  };
+
+  const getTitle = () => {
+    switch (step) {
+      case 'privacy': return 'Политика конфиденциальности';
+      case 'tier': return 'Выберите тариф';
+      case 'payment': return `Оплата — ${selectedTier?.name}`;
+      case 'requisites': return 'Реквизиты';
+      case 'screenshot': return '📎 Скриншот оплаты';
+      case 'sending': return '📎 Скриншот оплаты';
+      case 'success': return '✅ Заявка отправлена!';
+    }
+  };
+
+  const getSubtitle = () => {
+    switch (step) {
+      case 'privacy': return 'Перед покупкой ознакомьтесь с информацией о конфиденциальности.';
+      case 'tier': return 'Jarvis Industries — выберите подходящий тариф';
+      case 'payment': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
+      case 'requisites': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
+      case 'screenshot': return 'Прикрепите скриншот оплаты';
+      case 'sending': return 'Отправляем заявку...';
+      case 'success': return 'Мы проверим оплату и активируем доступ';
+    }
+  };
+
+  return (
+    <DialogPrimitive.Root open={isOpen} onOpenChange={handleClose}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[201] w-[92%] max-w-[500px] -translate-x-1/2 -translate-y-1/2 border border-zinc-800 bg-black p-6 shadow-2xl rounded-[32px] outline-none max-h-[90vh] overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+
+          {/* Header */}
+          <div className="mb-5">
+            <div className="flex justify-between items-start">
+              <DialogPrimitive.Title className="text-xl font-bold uppercase tracking-tight text-white">
+                {getTitle()}
+              </DialogPrimitive.Title>
+              <button onClick={handleClose} className="text-zinc-500 hover:text-white transition-colors flex-shrink-0 ml-4">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <DialogPrimitive.Description className="text-zinc-500 text-xs text-left mt-1">
+              {getSubtitle()}
+            </DialogPrimitive.Description>
+          </div>
+
+          {/* PRIVACY */}
+          {step === 'privacy' && (
+            <PrivacyPolicyStep
+              onAccept={() => {
+                localStorage.setItem('vibe_privacy_policy_accepted', '1');
+                setStep('tier');
+                toast.success('Политика конфиденциальности принята');
+              }}
+              onDecline={() => {
+                toast.error('Для покупки необходимо принять политику конфиденциальности');
+                handleClose();
+              }}
+            />
+          )}
+
+          {/* TIER SELECTION */}
+          {step === 'tier' && (
+            <div className="space-y-3">
+              {TIERS.map((tier) => (
+                <div
+                  key={tier.id}
+                  onClick={() => { setSelectedTier(tier); setStep('payment'); }}
+                  className={`relative overflow-hidden rounded-2xl border cursor-pointer transition-all active:scale-[0.98] hover:border-white/20 ${tier.border} bg-gradient-to-r ${tier.gradient} shadow-lg ${tier.glow}`}
+                >
+                  {tier.popular && (
+                    <div className="absolute top-3 right-3 text-[10px] font-black bg-green-500 text-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                      Популярный
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10">
+                      <img src={tier.image} alt={tier.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-white text-base uppercase tracking-tight">{tier.name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tier.badge}`}>
+                          {tier.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Zap size={11} className="text-zinc-500" />
+                        <span className="text-xs text-zinc-400 font-medium">{tier.tokens.toLocaleString('ru-RU')} токенов</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {tier.features.slice(1).map((f, i) => (
+                          <span key={i} className="text-[9px] text-zinc-600 bg-white/3 px-1.5 py-0.5 rounded-lg">{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-lg font-black text-white">{tier.price.toLocaleString('ru-RU')} ₽</div>
+                      <ChevronRight size={16} className="text-zinc-600 ml-auto mt-1" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {!profile && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4">
+                  <p className="text-yellow-400 text-sm">Войдите в аккаунт для покупки</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PAYMENT METHOD */}
+          {step === 'payment' && selectedTier && (
+            <div className="space-y-4">
+              {/* Tier summary */}
+              <div className={`flex items-center gap-3 p-4 rounded-2xl border bg-gradient-to-r ${selectedTier.gradient} ${selectedTier.border}`}>
+                <img src={selectedTier.image} alt={selectedTier.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-black text-white text-sm uppercase">{selectedTier.name} — {selectedTier.label}</p>
+                  <p className="text-xs text-zinc-400">{selectedTier.tokens.toLocaleString('ru-RU')} токенов</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-white text-lg">{selectedTier.price.toLocaleString('ru-RU')} ₽</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🇷🇺 Россия (автооплата)</p>
+                <div className="space-y-2">
+                  {PLATEGA_METHODS.map((method) => (
+                    <div key={method.id} onClick={() => setSelectedMethod(method.id)}
+                      className={`flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
+                      <div className="flex-1 flex items-center gap-3 p-4">
+                        <span className="text-zinc-400">{method.icon}</span>
+                        <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
+                        {method.badge && <span className="text-[10px] bg-white/10 text-zinc-400 px-2 py-0.5 rounded-full">{method.badge}</span>}
+                      </div>
+                      <span className="text-sm font-mono text-zinc-500 pr-4">{selectedTier.price.toLocaleString('ru-RU')} ₽</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🌍 Другие страны (реквизиты)</p>
+                <div className="space-y-2">
+                  {MANUAL_METHODS.map((method) => (
+                    <div key={method.id} onClick={() => setSelectedMethod(method.id)}
+                      className={`flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
+                      <div className="flex-1 flex items-center gap-3 p-4">
+                        <span className="text-zinc-400">{method.icon}</span>
+                        <span className="font-medium text-[14px] text-zinc-100">{method.country} {method.name}</span>
+                      </div>
+                      <span className="text-sm font-mono text-zinc-500 pr-4">{getPriceForMethod(method.currency, method.symbol)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
+              {!profile && <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4"><p className="text-yellow-400 text-sm">Войдите в аккаунт для оплаты</p></div>}
+
+              <div className="flex gap-3">
+                <button onClick={() => { setStep('tier'); setSelectedMethod(null); }} className="h-14 px-5 rounded-2xl border border-white/10 text-zinc-500 hover:text-white transition-all font-bold text-sm">
+                  ← Назад
+                </button>
+                <Button
+                  onClick={() => {
+                    if (!selectedMethod) { setErrorMsg('Выберите способ оплаты'); return; }
+                    if (!profile) { setErrorMsg('Войдите в аккаунт'); return; }
+                    setErrorMsg('');
+                    if (MANUAL_METHODS.find(m => m.id === selectedMethod)) {
+                      setStep('requisites');
+                    } else {
+                      setStep('screenshot');
+                    }
+                  }}
+                  disabled={!selectedMethod}
+                  className="flex-1 h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 disabled:opacity-30 active:scale-95 transition-all"
+                >
+                  Оплатить {selectedTier.price.toLocaleString('ru-RU')} ₽
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* REQUISITES */}
+          {step === 'requisites' && selectedTier && selectedManual && (
+            <div className="space-y-4">
+              {selectedManual.requisites.map((req, i) => (
+                <div key={i} className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{req.label}</p>
+                    <p className="font-mono text-base tracking-wider text-white mt-1">{req.value}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(req.value)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ml-3"><Copy size={16} /></button>
+                </div>
+              ))}
+              <div className="bg-zinc-900/30 p-4 rounded-2xl border border-white/5">
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  Переведите <span className="text-white font-bold">{getPriceForMethod(selectedManual.currency, selectedManual.symbol)}</span> и укажите в комментарии: <span className="text-white font-bold">{selectedTier.name}</span>
+                </p>
+              </div>
+              <button onClick={() => window.open(selectedManual.infoUrl, '_blank')} className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors py-2">
+                <ExternalLink size={14} /> Инструкция по оплате
+              </button>
+              <Button onClick={() => setStep('screenshot')} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200">
+                Я оплатил — прикрепить скриншот
+              </Button>
+            </div>
+          )}
+
+          {/* SCREENSHOT */}
+          {(step === 'screenshot' || step === 'sending') && (
+            <div className="space-y-4">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${screenshotPreview ? 'border-white/20' : 'border-zinc-700 hover:border-zinc-500'}`}
+              >
+                {screenshotPreview ? (
+                  <div className="space-y-3">
+                    <img src={screenshotPreview} alt="Скриншот" className="w-full max-h-48 object-contain rounded-xl" />
+                    <p className="text-zinc-500 text-xs">Нажмите, чтобы заменить</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 py-4">
+                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mx-auto">
+                      <ImageIcon className="text-zinc-500" size={28} />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold">Прикрепите скриншот оплаты</p>
+                      <p className="text-zinc-500 text-xs mt-1">JPG, PNG — нажмите для выбора</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+              {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
+              <Button
+                onClick={handleSendScreenshot}
+                disabled={!screenshot || step === 'sending'}
+                className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 disabled:opacity-40"
+              >
+                {step === 'sending'
+                  ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Отправляем...</span>
+                  : <span className="flex items-center gap-2"><Upload size={18} /> Отправить заявку</span>
+                }
+              </Button>
+            </div>
+          )}
+
+          {/* SUCCESS */}
+          {step === 'success' && selectedTier && (
+            <div className="flex flex-col gap-4 py-2">
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                    <CheckCircle className="text-white" size={40} />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center border-2 border-black">
+                    <span className="text-xs">✓</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-white font-black text-xl uppercase tracking-tight">Заявка принята!</p>
+                  <p className="text-zinc-500 text-sm mt-1">«{selectedTier.fullName}»</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-1">Что происходит дальше</p>
+                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                  <div className="w-8 h-8 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Bell size={14} className="text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Проверка оплаты</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Администратор проверит ваш чек. Обычно до 30 минут.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-zinc-900/60 border border-white/5 rounded-2xl p-4">
+                  <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User size={14} className="text-zinc-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Ссылка появится в профиле</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">После одобрения ссылка на группу <span className="text-white font-bold">{selectedTier.name}</span> будет в «Мои покупки».</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={goToProfile} className="flex-[2] h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
+                  <span className="flex items-center gap-2">
+                    <User size={16} />
+                    {countdown !== null ? `Профиль через ${countdown}...` : 'Перейти в профиль'}
+                    <ArrowRight size={16} />
+                  </span>
+                </Button>
+                <Button onClick={handleClose} variant="outline" className="flex-1 h-14 border-white/10 text-zinc-400 hover:text-white rounded-2xl font-bold bg-transparent">
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          )}
+
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+};
+
+export default JarvisIndustriesModal;

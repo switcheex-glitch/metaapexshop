@@ -9,13 +9,17 @@ const corsHeaders = {
 // Бот для добавления в группы — ОСНОВНОЙ ADMIN БОТ (должен быть администратором групп)
 const INVITE_BOT_TOKEN = '8369304980:AAHoKP0bO3bKqWcEdc8PMxuOxIQqaYJ952A';
 
-// Маппинг product_id → chat_id группы
-const PRODUCT_GROUPS: Record<string, { chatId: string; name: string }> = {
+// Маппинг product_id → chat_id группы + бот токен
+const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: string }> = {
   'jarvis_max':  { chatId: '-1002564995824', name: 'Jarvis Max' },
   'jarvis_pro':  { chatId: '-1002035910246', name: 'Jarvis Pro' },
   'friday_pro':  { chatId: '-1001816037231', name: 'Friday Pro' },
   'vibewall':    { chatId: '-1002277771896', name: 'VibeWall' },
   'pccontrol':   { chatId: '-1002268406304', name: 'PcControl' },
+  // Jarvis Industries тарифы — каждый со своим ботом
+  'jarvis_industries_mk1': { chatId: '-1003743900341', name: 'Jarvis Industries MK-I',   botToken: '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw' },
+  'jarvis_industries_mk2': { chatId: '-1003794537001', name: 'Jarvis Industries MK-II',  botToken: '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k' },
+  'jarvis_industries_mk3': { chatId: '-1003876790984', name: 'Jarvis Industries MK-III', botToken: '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4' },
 };
 
 // Также маппинг по названию продукта (на случай если product_id не совпадает)
@@ -104,17 +108,19 @@ serve(async (req) => {
     }
 
     const group = PRODUCT_GROUPS[productKey];
-    console.log("[invite-to-group] Group:", group.name, group.chatId, "| User ID:", telegramUserId);
+    // Используем бот токен группы (для MK-ботов) или общий invite бот
+    const botToken = group.botToken || INVITE_BOT_TOKEN;
+    console.log("[invite-to-group] Group:", group.name, group.chatId, "| User ID:", telegramUserId, "| Bot:", botToken.split(':')[0]);
 
     // Если есть числовой ID — пробуем добавить напрямую
     if (telegramUserId && !isNaN(telegramUserId)) {
-      await fetch(`https://api.telegram.org/bot${INVITE_BOT_TOKEN}/unbanChatMember`, {
+      await fetch(`https://api.telegram.org/bot${botToken}/unbanChatMember`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId, only_if_banned: true }),
       });
 
-      const addRes = await fetch(`https://api.telegram.org/bot${INVITE_BOT_TOKEN}/addChatMember`, {
+      const addRes = await fetch(`https://api.telegram.org/bot${botToken}/addChatMember`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId }),
@@ -136,7 +142,7 @@ serve(async (req) => {
     }
 
     // Создаём одноразовую invite link
-    const linkRes = await fetch(`https://api.telegram.org/bot${INVITE_BOT_TOKEN}/createChatInviteLink`, {
+    const linkRes = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
