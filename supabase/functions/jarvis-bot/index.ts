@@ -146,7 +146,7 @@ function buildNoAccessScreen(): string {
     `🟢 <b>MK-II</b>  — 30 000 токенов\n` +
     `🔴 <b>MK-III</b> — 60 000 токенов\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Перейдите в магазин: <b>@ApexTechhh</b>`
+    `Перейдите в магазин: <b>@ApexTechnology_bot</b>`
   );
 }
 
@@ -196,21 +196,18 @@ serve(async (req) => {
 
       console.log(`[jarvis-bot] Message from ${userId} (@${username}): ${text}`);
 
-      const mainKeyboard = {
-        inline_keyboard: [
-          [{ text: '🚀 Открыть JARVIS HUD', web_app: { url: MINI_APP_URL } }],
-          [{ text: '🔑 Получить токен', callback_data: 'get_token' }, { text: '📊 Статус', callback_data: 'check_status' }],
-          [{ text: '❓ Помощь', callback_data: 'help' }],
-        ],
-      };
-
-      if (text === '/start' || text.startsWith('/start ')) {
-        await sendMessage(chatId, buildMainMenu(username), mainKeyboard);
+      // При /start и любом сообщении — только кнопка открытия Mini App
+      if (text === '/start' || text.startsWith('/start ') || text) {
+        await sendMessage(chatId,
+          `⚡ <b>Jarvis Industries</b>\n\nНажмите кнопку ниже чтобы открыть панель управления:`,
+          {
+            inline_keyboard: [
+              [{ text: '🚀 Открыть JARVIS HUD', web_app: { url: MINI_APP_URL } }],
+            ],
+          }
+        );
         return new Response('ok', { status: 200 });
       }
-
-      // Любое другое сообщение — показываем меню
-      await sendMessage(chatId, buildMainMenu(username), mainKeyboard);
     }
 
     // ── ОБРАБОТКА CALLBACK ───────────────────────────────────────────────
@@ -242,7 +239,7 @@ serve(async (req) => {
             `<b>╚══════════════════════════╝</b>\n\n` +
             `Аккаунт не найден в системе.\n\n` +
             `Зарегистрируйтесь в магазине <b>Apex Technology</b> и укажите ваш Telegram ID при регистрации.\n\n` +
-            `▸ Магазин: <b>@ApexTechhh</b>`,
+            `▸ Магазин: <b>@ApexTechnology_bot</b>`,
             { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'back_main' }]] }
           );
           return new Response('ok', { status: 200 });
@@ -438,7 +435,7 @@ serve(async (req) => {
           `🔴 <b>MK-III</b> — 60 000 токенов / 30 дней\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<b>Поддержка:</b> @vibetechhSupport\n` +
-          `<b>Канал:</b> @ApexTechhh`,
+          `<b>Канал:</b> @ApexTechnology_bot`,
           { inline_keyboard: [[{ text: '🔙 Назад', callback_data: 'back_main' }]] }
         );
       }

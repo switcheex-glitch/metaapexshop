@@ -339,10 +339,10 @@ const MiniApp: React.FC = () => {
                 <p className="text-cyan-400 font-mono text-sm">{tgUser?.id || '—'}</p>
               </div>
               <a
-                href="https://t.me/ApexTechhh"
+                href="https://t.me/ApexTechnology_bot"
                 className="block w-full py-3 rounded-xl bg-white/5 border border-white/10 text-zinc-300 text-sm font-bold text-center hover:bg-white/10 transition-all"
               >
-                Перейти в магазин @ApexTechhh
+                Перейти в магазин @ApexTechnology_bot
               </a>
             </div>
           </div>
@@ -406,10 +406,10 @@ const MiniApp: React.FC = () => {
           </div>
 
           <a
-            href="https://t.me/ApexTechhh"
+            href="https://t.me/ApexTechnology_bot"
             className="block w-full py-4 rounded-2xl bg-white text-black font-black text-sm uppercase tracking-widest text-center active:scale-95 transition-all"
           >
-            Купить в магазине
+            Перейти в @ApexTechnology_bot
           </a>
         </div>
       </div>
