@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, CheckCircle, Loader2, Upload, ImageIcon, Copy, ExternalLink, ArrowRight, User, Bell, CreditCard, Wallet, Landmark, Bitcoin, Smartphone, ChevronRight, Zap } from "lucide-react";
+import { X, CheckCircle, Loader2, Upload, ImageIcon, Copy, ExternalLink, ArrowRight, User, Bell, CreditCard, Wallet, Landmark, Bitcoin, Smartphone, ChevronRight, Zap, Brain, Monitor, Eye, Shield, Heart, BookOpen, Palette, ChevronDown } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
@@ -91,7 +91,7 @@ interface JarvisIndustriesModalProps {
   onClose: () => void;
 }
 
-type Step = 'privacy' | 'tier' | 'payment' | 'requisites' | 'screenshot' | 'sending' | 'success';
+type Step = 'privacy' | 'info' | 'tier' | 'payment' | 'requisites' | 'screenshot' | 'sending' | 'success';
 
 const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, onClose }) => {
   const { profile } = useAuth();
@@ -110,7 +110,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   useEffect(() => {
     if (!isOpen) return;
     const accepted = localStorage.getItem('vibe_privacy_policy_accepted') === '1';
-    setStep(accepted ? 'tier' : 'privacy');
+    setStep(accepted ? 'info' : 'privacy');
     setSelectedTier(null);
     setSelectedMethod(null);
     setScreenshot(null);
@@ -132,7 +132,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   }, [step]);
 
   const handleClose = () => {
-    setStep('tier');
+    setStep('info');
     setSelectedTier(null);
     setSelectedMethod(null);
     setScreenshot(null);
@@ -207,6 +207,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const getTitle = () => {
     switch (step) {
       case 'privacy': return 'Политика конфиденциальности';
+      case 'info': return 'Jarvis Industries';
       case 'tier': return 'Выберите тариф';
       case 'payment': return `Оплата — ${selectedTier?.name}`;
       case 'requisites': return 'Реквизиты';
@@ -219,6 +220,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const getSubtitle = () => {
     switch (step) {
       case 'privacy': return 'Перед покупкой ознакомьтесь с информацией о конфиденциальности.';
+      case 'info': return 'Apex Technology — персональный цифровой дворецкий нового поколения';
       case 'tier': return 'Jarvis Industries — выберите подходящий тариф';
       case 'payment': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
       case 'requisites': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
@@ -254,7 +256,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
             <PrivacyPolicyStep
               onAccept={() => {
                 localStorage.setItem('vibe_privacy_policy_accepted', '1');
-                setStep('tier');
+                setStep('info');
                 toast.success('Политика конфиденциальности принята');
               }}
               onDecline={() => {
@@ -262,6 +264,61 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                 handleClose();
               }}
             />
+          )}
+
+          {/* INFO */}
+          {step === 'info' && (
+            <div className="space-y-4">
+              {/* Hero */}
+              <div className="relative overflow-hidden rounded-2xl border border-white/10">
+                <img src="/assets/jarvis-industries-mk3.jpg" alt="Jarvis Industries" className="w-full h-36 object-cover opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black bg-red-500/90 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Apex Technology</span>
+                    <span className="text-[10px] font-black bg-white/10 text-white px-2 py-0.5 rounded-full uppercase tracking-widest border border-white/10">🎙️ Голос JARVIS из фильма</span>
+                  </div>
+                  <p className="text-white font-black text-lg uppercase tracking-tight leading-tight">Операционная надстройка HUD</p>
+                  <p className="text-zinc-400 text-[11px] mt-0.5">Реальный голос JARVIS из «Железного человека» — не синтез, а оригинальный актёрский голос</p>
+                </div>
+              </div>
+
+              {/* Features grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { icon: <Brain size={16} />, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20', title: 'AI & Голос', desc: 'GPT-5.4, STT/TTS, Wikipedia, ElevenLabs' },
+                  { icon: <Monitor size={16} />, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', title: 'Система', desc: 'Управление окнами, файлами, питанием, звуком' },
+                  { icon: <Eye size={16} />, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20', title: 'Зрение', desc: 'Анализ экрана, перехват ссылок, INTERCEPTOR' },
+                  { icon: <Shield size={16} />, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', title: 'Мониторинг', desc: 'CPU, RAM, диск, процессы, алерты в реальном времени' },
+                  { icon: <Zap size={16} />, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20', title: 'Автоматизация', desc: 'Loadouts, макросы, цепочки команд, .exe запуск' },
+                  { icon: <Heart size={16} />, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', title: 'Bio-Sync', desc: 'Pomodoro, защита глаз 20-20-20, стресс-монитор' },
+                  { icon: <BookOpen size={16} />, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20', title: 'Органайзер', desc: 'AI-заметки, напоминания, карты, FORGE, DATALINK' },
+                  { icon: <Palette size={16} />, color: 'text-pink-400', bg: 'bg-pink-500/10 border-pink-500/20', title: 'HUD Интерфейс', desc: 'Дизайн Iron Man, Reactor HUD, темы, 3D-глобус' },
+                ].map((f, i) => (
+                  <div key={i} className={`rounded-2xl border p-3 ${f.bg}`}>
+                    <div className={`${f.color} mb-1.5`}>{f.icon}</div>
+                    <p className="text-white font-bold text-[12px] leading-tight">{f.title}</p>
+                    <p className="text-zinc-500 text-[10px] mt-0.5 leading-snug">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Voice highlight */}
+              <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-gradient-to-r from-red-950/40 to-black p-4">
+                <div className="absolute right-3 top-3 text-4xl opacity-10">🎙️</div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-1">Эксклюзивно</p>
+                <p className="text-white font-black text-sm leading-tight">Реальный голос JARVIS из «Железного человека»</p>
+                <p className="text-zinc-500 text-[11px] mt-1 leading-relaxed">Не синтез и не имитация — оригинальный актёрский голос, который вы слышали в фильме. Ваш персональный дворецкий говорит именно так.</p>
+              </div>
+
+              <Button
+                onClick={() => setStep('tier')}
+                className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all"
+              >
+                <span className="flex items-center gap-2">
+                  Выбрать тариф <ChevronDown size={18} />
+                </span>
+              </Button>
+            </div>
           )}
 
           {/* TIER SELECTION */}
