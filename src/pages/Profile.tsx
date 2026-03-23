@@ -132,19 +132,41 @@ const Profile = () => {
 
   const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean) => {
     setInvitingId(purchaseId);
-    const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
-    });
-    const data = await res.json();
-    if (data.invite_link) {
-      setInviteLinks(prev => ({ ...prev, [purchaseId]: data.invite_link }));
-      window.open(data.invite_link, '_blank');
-    } else if (data.success && data.added_directly) {
-      await loadPurchases();
-    } else if (data.error) {
-      setInviteErrors(prev => ({ ...prev, [purchaseId]: data.error }));
+    setInviteErrors(prev => { const n = {...prev}; delete n[purchaseId]; return n; });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+        },
+        body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('[handleGetProduct] HTTP error:', res.status, text);
+        setInviteErrors(prev => ({ ...prev, [purchaseId]: `Ошибка сервера (${res.status}). Попробуйте позже.` }));
+        setInvitingId(null);
+        return;
+      }
+
+      const data = await res.json();
+      console.log('[handleGetProduct] result:', data);
+
+      if (data.invite_link) {
+        setInviteLinks(prev => ({ ...prev, [purchaseId]: data.invite_link }));
+        window.open(data.invite_link, '_blank');
+      } else if (data.success && data.added_directly) {
+        await loadPurchases();
+      } else if (data.error) {
+        setInviteErrors(prev => ({ ...prev, [purchaseId]: data.error }));
+      }
+    } catch (e) {
+      console.error('[handleGetProduct] error:', e);
+      setInviteErrors(prev => ({ ...prev, [purchaseId]: 'Ошибка соединения. Попробуйте ещё раз.' }));
     }
     setInvitingId(null);
   };

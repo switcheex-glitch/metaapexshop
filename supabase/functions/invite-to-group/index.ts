@@ -109,11 +109,14 @@ serve(async (req) => {
       console.log("[invite-to-group] JI Group:", group.name, group.chatId, "| User ID:", telegramUserId);
 
       if (telegramUserId && !isNaN(telegramUserId)) {
-        await fetch(`https://api.telegram.org/bot${botToken}/unbanChatMember`, {
+        // Сначала пробуем снять бан
+        const unbanRes = await fetch(`https://api.telegram.org/bot${botToken}/unbanChatMember`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId, only_if_banned: true }),
         });
+        const unbanData = await unbanRes.json();
+        console.log("[invite-to-group] JI unban result:", unbanData.ok, unbanData.description || '');
 
         const addRes = await fetch(`https://api.telegram.org/bot${botToken}/addChatMember`, {
           method: 'POST',
@@ -121,7 +124,7 @@ serve(async (req) => {
           body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId }),
         });
         const addData = await addRes.json();
-        console.log("[invite-to-group] JI addChatMember result:", addData);
+        console.log("[invite-to-group] JI addChatMember result:", JSON.stringify(addData));
 
         if (addData.ok) {
           await supabase.from('jarvis_industries_purchases')
@@ -132,6 +135,8 @@ serve(async (req) => {
             success: true, added_directly: true, group: group.name,
           }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
+
+        console.warn("[invite-to-group] JI addChatMember failed:", addData.description, "— trying invite link");
       }
 
       // Создаём invite link для JI
@@ -145,7 +150,7 @@ serve(async (req) => {
         }),
       });
       const linkData = await linkRes.json();
-      console.log("[invite-to-group] JI createChatInviteLink result:", linkData);
+      console.log("[invite-to-group] JI createChatInviteLink result:", JSON.stringify(linkData));
 
       if (linkData.ok) {
         await supabase.from('jarvis_industries_purchases')
@@ -160,9 +165,10 @@ serve(async (req) => {
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      console.error("[invite-to-group] JI Bot is not admin:", group.chatId, linkData);
+      // Оба метода не сработали — возвращаем понятную ошибку
+      console.error("[invite-to-group] JI BOTH methods failed. Bot:", botToken.split(':')[0], "Chat:", group.chatId, "Error:", linkData.description);
       return new Response(JSON.stringify({
-        error: `Бот не является администратором группы ${group.name}. Обратитесь в поддержку: @vibetechhSupport`,
+        error: `Бот не является администратором группы "${group.name}". Убедитесь что бот добавлен как администратор. Ошибка: ${linkData.description}`,
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } else {
