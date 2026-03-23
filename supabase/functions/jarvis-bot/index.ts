@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const BOT_TOKEN = Deno.env.get('JARVIS_TOKEN_BOT_TOKEN')!;
 const BOT_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const MINI_APP_URL = 'https://testzbt2.vercel.app/miniapp';
+const MINI_APP_URL = 'https://testzbt3.vercel.app/miniapp';
 
 const TIER_INFO: Record<string, { name: string; tokens: number; color: string; emoji: string; bar: string }> = {
   mk1: { name: 'MK-I',   tokens: 10000, color: '🔵', emoji: '⚡', bar: '▓▓▓░░░░░░░' },
