@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RefreshCw, LogOut, Users, Timer, CheckCircle, XCircle,
-  Clock, Zap, Search, ChevronDown, AlertTriangle, Ban, ArrowLeft
+  Clock, Zap, Search, AlertTriangle, ArrowLeft, Key, Copy
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
@@ -25,6 +25,21 @@ const TIER_NAMES: Record<string, string> = {
 
 type FilterTier = 'all' | 'mk1' | 'mk2' | 'mk3';
 type FilterStatus = 'all' | 'active' | 'expiring' | 'expired' | 'pending';
+
+interface AppToken {
+  id: string;
+  purchase_id: string;
+  token: string;
+  tier: string;
+  tier_name: string;
+  tokens_count: number;
+  username: string;
+  telegram_id: string;
+  issued_at: string;
+  expires_at: string | null;
+  is_active: boolean;
+  last_used_at: string | null;
+}
 
 interface JIPurchase {
   id: string;
@@ -76,29 +91,40 @@ const AdminJarvis: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [runningCheck, setRunningCheck] = useState(false);
   const [checkResult, setCheckResult] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'subscriptions' | 'tokens'>('subscriptions');
+  const [tokens, setTokens] = useState<AppToken[]>([]);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/jarvis_industries_purchases?select=*,profiles(username,telegram_id)&order=purchased_at.desc`,
-        {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        }
-      );
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setPurchases(data);
-        setLastUpdated(new Date());
-      }
+      const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      };
+
+      const [purchasesRes, tokensRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/jarvis_industries_purchases?select=*,profiles(username,telegram_id)&order=purchased_at.desc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/jarvis_app_tokens?select=*&order=issued_at.desc`, { headers }),
+      ]);
+
+      const purchasesData = await purchasesRes.json();
+      const tokensData = await tokensRes.json();
+
+      if (Array.isArray(purchasesData)) setPurchases(purchasesData);
+      if (Array.isArray(tokensData)) setTokens(tokensData);
+      setLastUpdated(new Date());
     } catch (e) {
       console.error('AdminJarvis loadData error:', e);
     }
     setLoading(false);
   }, []);
+
+  const copyToken = (token: string) => {
+    navigator.clipboard.writeText(token);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+  };
 
   useEffect(() => {
     const saved = sessionStorage.getItem('apex_admin_authed');
@@ -295,6 +321,119 @@ const AdminJarvis: React.FC = () => {
           })}
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-white/10 pb-0">
+          {[
+            { id: 'subscriptions', label: '👥 Подписки', count: purchases.length },
+            { id: 'tokens', label: '🔑 Токены', count: tokens.length },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as 'subscriptions' | 'tokens')}
+              className={`px-4 py-2.5 text-sm font-bold rounded-t-xl transition-all flex items-center gap-2 ${
+                activeTab === tab.id
+                  ? 'bg-white text-black'
+                  : 'text-zinc-500 hover:text-white'
+              }`}
+            >
+              {tab.label}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${activeTab === tab.id ? 'bg-black/20' : 'bg-white/10'}`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* TOKENS TAB */}
+        {activeTab === 'tokens' && (
+          <div className="space-y-2">
+            <p className="text-[11px] text-zinc-600 uppercase tracking-widest px-1">
+              Выдано токенов: {tokens.length} · Активных: {tokens.filter(t => t.is_active).length}
+            </p>
+            {tokens.length === 0 ? (
+              <div className="text-center py-16 text-zinc-600">
+                <Key size={40} className="mx-auto mb-3 opacity-30" />
+                <p className="font-bold">Токены ещё не выдавались</p>
+                <p className="text-sm mt-1">Пользователи получают токены через бота</p>
+              </div>
+            ) : (
+              tokens.map(t => {
+                const tierColor = TIER_COLORS[t.tier] || TIER_COLORS.mk1;
+                const isExpired = t.expires_at ? new Date(t.expires_at).getTime() < Date.now() : false;
+                const daysLeft = t.expires_at
+                  ? Math.ceil((new Date(t.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  : null;
+                const daysInfo = getDaysLeftLabel(daysLeft);
+
+                return (
+                  <div key={t.id} className={`rounded-2xl border p-4 ${isExpired || !t.is_active ? 'border-zinc-700/30 bg-zinc-900/20 opacity-60' : `${tierColor.border} ${tierColor.bg}`}`}>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${tierColor.border} ${tierColor.bg}`}>
+                          <Key size={14} className={tierColor.text} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-white text-sm">{t.username || '—'}</span>
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${tierColor.badge}`}>
+                              {TIER_NAMES[t.tier] || t.tier}
+                            </span>
+                            {!t.is_active && (
+                              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-zinc-700/40 text-zinc-500 border border-zinc-600/30">
+                                ЗАМЕНЁН
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-500 font-mono mt-0.5">{t.telegram_id || '—'}</p>
+                          {/* Токен */}
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <code className="text-[11px] font-mono text-white/70 bg-black/40 px-2 py-1 rounded-lg tracking-wider">
+                              {t.token}
+                            </code>
+                            <button
+                              onClick={() => copyToken(t.token)}
+                              className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                            >
+                              {copiedToken === t.token
+                                ? <CheckCircle size={12} className="text-green-400" />
+                                : <Copy size={12} className="text-zinc-500" />
+                              }
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
+                            <span className="text-[10px] text-zinc-600">
+                              Выдан: {new Date(t.issued_at).toLocaleDateString('ru-RU')} {new Date(t.issued_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {t.last_used_at && (
+                              <span className="text-[10px] text-zinc-600">
+                                Последнее использование: {new Date(t.last_used_at).toLocaleDateString('ru-RU')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl ${daysInfo.bg}`}>
+                          <Timer size={11} className={daysInfo.color} />
+                          <span className={`text-xs font-black ${daysInfo.color}`}>{daysInfo.label}</span>
+                        </div>
+                        {t.expires_at && (
+                          <p className="text-[10px] text-zinc-600 font-mono">
+                            до {new Date(t.expires_at).toLocaleDateString('ru-RU')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* SUBSCRIPTIONS TAB */}
+        {activeTab === 'subscriptions' && <>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
@@ -473,6 +612,9 @@ const AdminJarvis: React.FC = () => {
             })
           )}
         </div>
+
+        {/* End subscriptions tab */}
+        </>}
 
         <div className="h-8" />
       </div>

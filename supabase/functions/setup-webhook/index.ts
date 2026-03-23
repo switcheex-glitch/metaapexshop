@@ -5,8 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const TELEGRAM_BOT_TOKEN = '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs';
-const WEBHOOK_URL = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/telegram-webhook';
+const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
+
+// Все боты и их webhook endpoints
+const BOTS = [
+  {
+    name: 'Admin Bot (payments)',
+    token: '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs',
+    webhook: `${SUPABASE_URL}/functions/v1/telegram-webhook`,
+  },
+  {
+    name: 'Jarvis Token Bot',
+    token: '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU',
+    webhook: `${SUPABASE_URL}/functions/v1/jarvis-bot`,
+  },
+];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,23 +27,28 @@ serve(async (req) => {
   }
 
   try {
-    console.log("[setup-webhook] Registering webhook:", WEBHOOK_URL);
+    const results = [];
 
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: WEBHOOK_URL }),
-    });
+    for (const bot of BOTS) {
+      console.log(`[setup-webhook] Registering webhook for ${bot.name}: ${bot.webhook}`);
 
-    const data = await res.json();
-    console.log("[setup-webhook] Result:", data);
+      const res = await fetch(`https://api.telegram.org/bot${bot.token}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: bot.webhook }),
+      });
 
-    return new Response(JSON.stringify(data), {
+      const data = await res.json();
+      console.log(`[setup-webhook] ${bot.name} result:`, data);
+      results.push({ bot: bot.name, ...data });
+    }
+
+    return new Response(JSON.stringify({ success: true, results }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error("[setup-webhook] Error:", error);
+    console.error('[setup-webhook] Error:', error);
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
