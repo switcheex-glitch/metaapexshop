@@ -72,7 +72,7 @@ async function sendTokenToUser(
       parse_mode: 'HTML',
       reply_markup: JSON.stringify({
         inline_keyboard: [
-          [{ text: '🔑 Открыть в боте', url: `https://t.me/JarvisTokenBot?start=token` }],
+          [{ text: '🔑 Получить токен', url: `https://t.me/JarvisIndustriesTokens_bot?start=token` }],
         ],
       }),
     }),

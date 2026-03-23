@@ -396,8 +396,8 @@ const Profile = () => {
                             <div className="flex items-center gap-2 bg-zinc-900/60 border border-white/5 rounded-xl px-3 py-2.5">
                               <Key size={13} className="text-zinc-500 flex-shrink-0" />
                               <p className="text-[11px] text-zinc-500">
-                                Токен будет выдан после одобрения или через{' '}
-                                <span className="text-white font-bold">@JarvisTokenBot</span>
+                                Получите токен через бота:{' '}
+                                <a href="https://t.me/JarvisIndustriesTokens_bot" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-bold hover:underline">@JarvisIndustriesTokens_bot</a>
                               </p>
                             </div>
                           </div>
@@ -416,6 +416,17 @@ const Profile = () => {
                               <p className="text-xs text-green-300/70">
                                 🎉 Оплата подтверждена! Нажмите кнопку чтобы получить доступ к группе.
                               </p>
+                            )}
+                            {isJI && !accessExpired && (
+                              <a
+                                href="https://t.me/JarvisIndustriesTokens_bot"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400 font-bold text-xs uppercase tracking-widest px-3 py-2.5 rounded-xl transition-all"
+                              >
+                                <Key size={13} />
+                                Получить токен → @JarvisIndustriesTokens_bot
+                              </a>
                             )}
                             {item.invited_to_group && !item.invite_link && !inviteLinks[item.id] ? (
                               <div className="flex items-center gap-2 text-xs text-green-400 font-bold bg-green-400/10 px-3 py-2 rounded-xl">
