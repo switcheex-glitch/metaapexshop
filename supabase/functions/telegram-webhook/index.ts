@@ -7,6 +7,81 @@ const corsHeaders = {
 };
 
 const TELEGRAM_BOT_TOKEN = '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs';
+// Бот для выдачи токенов (Jarvis Token Bot)
+const JARVIS_BOT_TOKEN = '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU';
+
+const TIER_INFO: Record<string, { emoji: string; bar: string; color: string }> = {
+  mk1: { emoji: '⚡',     bar: '▓▓▓░░░░░░░', color: '🔵' },
+  mk2: { emoji: '⚡⚡',   bar: '▓▓▓▓▓▓░░░░', color: '🟢' },
+  mk3: { emoji: '⚡⚡⚡', bar: '▓▓▓▓▓▓▓▓▓▓', color: '🔴' },
+};
+
+// Генерация токена в стиле JARVIS
+function generateToken(tier: string): string {
+  const prefix = `JRV-${tier.toUpperCase()}`;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const segments = [];
+  for (let s = 0; s < 3; s++) {
+    let seg = '';
+    for (let i = 0; i < 5; i++) seg += chars[Math.floor(Math.random() * chars.length)];
+    segments.push(seg);
+  }
+  return `${prefix}-${segments.join('-')}`;
+}
+
+// Отправить токен пользователю через Jarvis Bot
+async function sendTokenToUser(
+  telegramUserId: number,
+  tier: string,
+  tierName: string,
+  token: string,
+  tokensCount: number,
+  accessEnd: Date
+) {
+  const info = TIER_INFO[tier] || TIER_INFO.mk1;
+  const endDate = accessEnd.toLocaleDateString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Moscow',
+  });
+  const endTime = accessEnd.toLocaleTimeString('ru-RU', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow',
+  });
+
+  const text =
+    `<b>╔══════════════════════════╗</b>\n` +
+    `<b>║  ✅  ДОСТУП АКТИВИРОВАН   ║</b>\n` +
+    `<b>╚══════════════════════════╝</b>\n\n` +
+    `<b>ТАРИФ:</b> ${info.color} <b>Jarvis Industries ${tierName}</b>\n` +
+    `<b>УРОВЕНЬ:</b> ${info.emoji} ${info.bar}\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>🔐 ВАШ ТОКЕН ДОСТУПА:</b>\n\n` +
+    `<code>${token}</code>\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>⚡ ТОКЕНЫ:</b> <code>${tokensCount.toLocaleString('ru-RU')}</code>\n` +
+    `<b>📅 ДОСТУП ДО:</b> ${endDate} ${endTime} МСК\n` +
+    `<b>⏳ ОСТАЛОСЬ:</b> ✅ 30 дней\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `<i>Скопируйте токен и введите его при запуске приложения Jarvis Industries.</i>\n\n` +
+    `<b>⚠️ Не передавайте токен третьим лицам!</b>\n\n` +
+    `Управление подпиской: /start`;
+
+  const res = await fetch(`https://api.telegram.org/bot${JARVIS_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: telegramUserId,
+      text,
+      parse_mode: 'HTML',
+      reply_markup: JSON.stringify({
+        inline_keyboard: [
+          [{ text: '🔑 Открыть в боте', url: `https://t.me/JarvisTokenBot?start=token` }],
+        ],
+      }),
+    }),
+  });
+  const data = await res.json();
+  console.log(`[telegram-webhook] Token sent to user ${telegramUserId}:`, data.ok, data.description || '');
+  return data.ok;
+}
 
 async function answerCallbackQuery(callbackQueryId: string, text: string) {
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
@@ -64,7 +139,6 @@ serve(async (req) => {
     const messageId = callbackQuery.message?.message_id;
     const adminUsername = callbackQuery.from?.username || callbackQuery.from?.first_name || 'Админ';
 
-    // Проверяем что нажал именно админ
     const adminIds = ADMIN_CHAT_ID.split(',').map(id => id.trim());
     if (!adminIds.includes(String(fromChatId))) {
       console.warn("[telegram-webhook] Unauthorized callback from:", fromChatId);
@@ -78,14 +152,12 @@ serve(async (req) => {
 
     console.log("[telegram-webhook] Action:", action, "shortId:", shortId);
 
-    // Определяем — это Jarvis Industries или обычная покупка
     const isJI = action.startsWith('ji_');
     const tableName = isJI ? 'jarvis_industries_purchases' : 'purchases';
 
-    // Ищем покупку в нужной таблице
     const { data: allPurchases, error: searchError } = await supabase
       .from(tableName)
-      .select(isJI ? '*, profiles(username, telegram_id)' : '*, profiles(username, telegram_id)')
+      .select('*, profiles(username, telegram_id)')
       .order('purchased_at', { ascending: false })
       .limit(200);
 
@@ -105,7 +177,6 @@ serve(async (req) => {
     const userName = profile?.username || purchase.username || 'Пользователь';
     const userTelegramId = profile?.telegram_id || purchase.telegram_id || '';
 
-    // Название товара
     const productDisplayName = isJI
       ? `${purchase.tier_name} (${purchase.tokens?.toLocaleString('ru-RU')} токенов)`
       : purchase.product_name;
@@ -113,10 +184,9 @@ serve(async (req) => {
     if (action === 'ok' || action === 'ji_ok') {
       const now = new Date();
       const accessEnd = new Date(now);
-      accessEnd.setDate(accessEnd.getDate() + 30); // +30 дней
+      accessEnd.setDate(accessEnd.getDate() + 30);
 
       if (isJI) {
-        // Для Jarvis Industries — ставим даты доступа
         await supabase
           .from('jarvis_industries_purchases')
           .update({
@@ -135,7 +205,55 @@ serve(async (req) => {
 
       await answerCallbackQuery(callbackQueryId, '✅ Покупка одобрена!');
 
-      // Автоматически добавляем в группу
+      // ── Для JI: генерируем и отправляем токен пользователю ──────────────
+      let tokenResult = '';
+      if (isJI) {
+        try {
+          const token = generateToken(purchase.tier as string);
+
+          // Сохраняем токен в БД
+          await supabase.from('jarvis_app_tokens').insert({
+            purchase_id: purchase.id,
+            profile_id: profileId || null,
+            token,
+            tier: purchase.tier,
+            tier_name: purchase.tier_name,
+            tokens_count: purchase.tokens,
+            telegram_id: userTelegramId,
+            username: userName,
+            issued_at: now.toISOString(),
+            expires_at: accessEnd.toISOString(),
+            is_active: true,
+          });
+
+          // Отправляем токен пользователю если есть числовой Telegram ID
+          let sentToUser = false;
+          if (userTelegramId.startsWith('@id_')) {
+            const userId = parseInt(userTelegramId.replace('@id_', ''), 10);
+            if (!isNaN(userId)) {
+              sentToUser = await sendTokenToUser(
+                userId,
+                purchase.tier as string,
+                purchase.tier_name as string,
+                token,
+                purchase.tokens as number,
+                accessEnd
+              );
+            }
+          }
+
+          tokenResult = sentToUser
+            ? `\n🔑 Токен выдан: \`${token}\`\n✅ Отправлен пользователю в Telegram`
+            : `\n🔑 Токен выдан: \`${token}\`\n⚠️ Не удалось отправить в Telegram (нет ID)`;
+
+          console.log(`[telegram-webhook] Token issued: ${token}, sent: ${sentToUser}`);
+        } catch (e) {
+          console.error('[telegram-webhook] Token generation error:', e);
+          tokenResult = '\n⚠️ Ошибка при генерации токена';
+        }
+      }
+
+      // ── Добавляем в группу ───────────────────────────────────────────────
       const SUPABASE_URL_VAL = Deno.env.get('SUPABASE_URL')!;
       const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
       let inviteResult = '';
@@ -173,13 +291,14 @@ serve(async (req) => {
           `💰 Сумма: *${purchase.price} ₽*\n` +
           `🕐 Рассмотрено: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}` +
           accessEndStr +
+          tokenResult +
           inviteResult
         );
       }
 
       for (const adminId of adminIds) {
         if (String(adminId) !== String(fromChatId)) {
-          await sendMessage(adminId, `✅ Заявка *${productDisplayName}* для *${userName}* одобрена @${adminUsername}${accessEndStr}${inviteResult}`);
+          await sendMessage(adminId, `✅ Заявка *${productDisplayName}* для *${userName}* одобрена @${adminUsername}${accessEndStr}${tokenResult}${inviteResult}`);
         }
       }
 
@@ -216,13 +335,11 @@ serve(async (req) => {
     } else if (action === 'bl') {
       const blockProfileId = profileId || purchase.profile_id;
 
-      // Блокируем профиль
       await supabase
         .from('profiles')
         .update({ is_blocked: true, block_reason: `Заблокирован администратором @${adminUsername}` })
         .eq('id', blockProfileId);
 
-      // Также отклоняем заявку (в нужной таблице)
       await supabase
         .from(tableName)
         .update({ status: 'rejected', reviewed_at: new Date().toISOString() })
@@ -255,6 +372,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[telegram-webhook] Error:", error);
-    return new Response('ok', { status: 200 }); // Telegram требует 200 даже при ошибке
+    return new Response('ok', { status: 200 });
   }
 });

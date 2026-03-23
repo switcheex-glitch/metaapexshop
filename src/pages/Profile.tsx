@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, Calendar, Clock, ShoppingBag, LogOut, ChevronRight, RefreshCw, ExternalLink, Loader2, Timer, Zap } from 'lucide-react';
+import { ArrowLeft, Wallet, Calendar, Clock, ShoppingBag, LogOut, ChevronRight, RefreshCw, ExternalLink, Loader2, Timer, Zap, Key, Copy, CheckCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useCurrency } from '@/hooks/use-currency';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,6 +37,8 @@ const Profile = () => {
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [inviteLinks, setInviteLinks] = useState<Record<string, string>>({});
   const [inviteErrors, setInviteErrors] = useState<Record<string, string>>({});
+  const [appTokens, setAppTokens] = useState<Record<string, string>>({});
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !profile) {
@@ -63,6 +65,8 @@ const Profile = () => {
     return () => clearInterval(interval);
   }, [profile]);
 
+  const SUPABASE_REST = 'https://ldvlahtoiwimroycqcav.supabase.co/rest/v1';
+
   const loadPurchases = async () => {
     if (!profile) return;
     const res = await fetch(`${PROFILE_API}?action=get-purchases`, {
@@ -71,7 +75,40 @@ const Profile = () => {
       body: JSON.stringify({ profileId: profile.id }),
     });
     const data = await res.json();
-    if (data.purchases) setPurchases(data.purchases as Purchase[]);
+    if (data.purchases) {
+      setPurchases(data.purchases as Purchase[]);
+      // Загружаем токены для JI-покупок
+      const jiIds = (data.purchases as Purchase[])
+        .filter((p: Purchase & { is_jarvis_industries?: boolean }) => p.is_jarvis_industries)
+        .map((p: Purchase) => p.id);
+      if (jiIds.length > 0) {
+        loadAppTokens(jiIds);
+      }
+    }
+  };
+
+  const loadAppTokens = async (purchaseIds: string[]) => {
+    try {
+      const filter = purchaseIds.map(id => `purchase_id.eq.${id}`).join(',');
+      const res = await fetch(
+        `${SUPABASE_REST}/jarvis_app_tokens?select=purchase_id,token&is_active=eq.true&or=(${filter})`,
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
+      );
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const map: Record<string, string> = {};
+        data.forEach((t: { purchase_id: string; token: string }) => { map[t.purchase_id] = t.token; });
+        setAppTokens(map);
+      }
+    } catch (e) {
+      console.error('loadAppTokens error:', e);
+    }
+  };
+
+  const copyToken = (token: string) => {
+    navigator.clipboard.writeText(token);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
   };
 
   const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean) => {
@@ -328,6 +365,45 @@ const Profile = () => {
                                 Активирован: {new Date(item.access_start).toLocaleDateString('ru-RU')} в {new Date(item.access_start).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             )}
+                          </div>
+                        )}
+
+                        {/* Токен доступа для JI */}
+                        {isJI && item.status === 'approved' && !accessExpired && appTokens[item.id] && (
+                          <div className="mt-3 pt-3 border-t border-white/5">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-1.5">
+                              <Key size={10} /> Токен доступа к приложению
+                            </p>
+                            <div className="flex items-center gap-2 bg-black/60 border border-white/10 rounded-xl px-3 py-2.5">
+                              <code className="flex-1 text-[11px] font-mono text-white/80 tracking-wider truncate">
+                                {appTokens[item.id]}
+                              </code>
+                              <button
+                                onClick={() => copyToken(appTokens[item.id])}
+                                className="flex-shrink-0 p-1.5 bg-white/5 hover:bg-white/15 rounded-lg transition-colors"
+                              >
+                                {copiedToken === appTokens[item.id]
+                                  ? <CheckCircle size={13} className="text-green-400" />
+                                  : <Copy size={13} className="text-zinc-400" />
+                                }
+                              </button>
+                            </div>
+                            {copiedToken === appTokens[item.id] && (
+                              <p className="text-[10px] text-green-400 mt-1 px-1">✓ Скопировано!</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Нет токена — предложить получить через бота */}
+                        {isJI && item.status === 'approved' && !accessExpired && !appTokens[item.id] && (
+                          <div className="mt-3 pt-3 border-t border-white/5">
+                            <div className="flex items-center gap-2 bg-zinc-900/60 border border-white/5 rounded-xl px-3 py-2.5">
+                              <Key size={13} className="text-zinc-500 flex-shrink-0" />
+                              <p className="text-[11px] text-zinc-500">
+                                Токен будет выдан после одобрения или через{' '}
+                                <span className="text-white font-bold">@JarvisTokenBot</span>
+                              </p>
+                            </div>
                           </div>
                         )}
 
