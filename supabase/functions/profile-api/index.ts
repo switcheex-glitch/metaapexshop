@@ -155,19 +155,44 @@ serve(async (req) => {
       });
     }
 
-    const { data, error } = await supabase
+    // Обычные покупки
+    const { data: regularPurchases, error: regularError } = await supabase
       .from('purchases')
       .select('*')
       .eq('profile_id', profileId)
       .order('purchased_at', { ascending: false });
 
-    if (error) {
+    // Jarvis Industries покупки
+    const { data: jiPurchases, error: jiError } = await supabase
+      .from('jarvis_industries_purchases')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('purchased_at', { ascending: false });
+
+    if (regularError || jiError) {
+      console.error("[profile-api] get-purchases error:", regularError, jiError);
       return new Response(JSON.stringify({ error: 'Failed to fetch purchases' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ purchases: data || [] }), {
+    // Нормализуем JI покупки в общий формат
+    const normalizedJI = (jiPurchases || []).map((p: Record<string, unknown>) => ({
+      ...p,
+      product_id: `jarvis_industries_${p.tier}`,
+      product_name: p.tier_name,
+      is_jarvis_industries: true,
+      // Даты доступа
+      access_start: p.access_start,
+      access_end: p.access_end,
+    }));
+
+    const allPurchases = [
+      ...(regularPurchases || []).map((p: Record<string, unknown>) => ({ ...p, is_jarvis_industries: false })),
+      ...normalizedJI,
+    ].sort((a, b) => new Date(b.purchased_at as string).getTime() - new Date(a.purchased_at as string).getTime());
+
+    return new Response(JSON.stringify({ purchases: allPurchases }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

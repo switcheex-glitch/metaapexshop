@@ -78,35 +78,60 @@ serve(async (req) => {
 
     console.log("[telegram-webhook] Action:", action, "shortId:", shortId);
 
-    // Ищем покупку по короткому ID (первые 16 символов UUID без дефисов)
+    // Определяем — это Jarvis Industries или обычная покупка
+    const isJI = action.startsWith('ji_');
+    const tableName = isJI ? 'jarvis_industries_purchases' : 'purchases';
+
+    // Ищем покупку в нужной таблице
     const { data: allPurchases, error: searchError } = await supabase
-      .from('purchases')
-      .select('*, profiles(username, telegram_id)')
+      .from(tableName)
+      .select(isJI ? '*, profiles(username, telegram_id)' : '*, profiles(username, telegram_id)')
       .order('purchased_at', { ascending: false })
       .limit(200);
 
-    const purchase = allPurchases?.find(p => {
+    const purchase = allPurchases?.find((p: { id: string }) => {
       const pShortId = p.id.replace(/-/g, '').substring(0, 16);
       return pShortId === shortId;
     });
 
     if (searchError || !purchase) {
-      console.error("[telegram-webhook] Purchase not found for shortId:", shortId);
+      console.error("[telegram-webhook] Purchase not found for shortId:", shortId, "in table:", tableName);
       await answerCallbackQuery(callbackQueryId, '❌ Заявка не найдена');
       return new Response('ok', { status: 200 });
     }
 
     const profileId = purchase.profile_id;
     const profile = purchase.profiles as { username: string; telegram_id: string } | null;
-    const userName = profile?.username || 'Пользователь';
-    const userTelegramId = profile?.telegram_id || '';
+    const userName = profile?.username || purchase.username || 'Пользователь';
+    const userTelegramId = profile?.telegram_id || purchase.telegram_id || '';
 
-    if (action === 'ok') {
-      // Одобряем покупку
-      await supabase
-        .from('purchases')
-        .update({ status: 'approved', reviewed_at: new Date().toISOString() })
-        .eq('id', purchase.id);
+    // Название товара
+    const productDisplayName = isJI
+      ? `${purchase.tier_name} (${purchase.tokens?.toLocaleString('ru-RU')} токенов)`
+      : purchase.product_name;
+
+    if (action === 'ok' || action === 'ji_ok') {
+      const now = new Date();
+      const accessEnd = new Date(now);
+      accessEnd.setDate(accessEnd.getDate() + 30); // +30 дней
+
+      if (isJI) {
+        // Для Jarvis Industries — ставим даты доступа
+        await supabase
+          .from('jarvis_industries_purchases')
+          .update({
+            status: 'approved',
+            reviewed_at: now.toISOString(),
+            access_start: now.toISOString(),
+            access_end: accessEnd.toISOString(),
+          })
+          .eq('id', purchase.id);
+      } else {
+        await supabase
+          .from('purchases')
+          .update({ status: 'approved', reviewed_at: now.toISOString() })
+          .eq('id', purchase.id);
+      }
 
       await answerCallbackQuery(callbackQueryId, '✅ Покупка одобрена!');
 
@@ -118,7 +143,7 @@ serve(async (req) => {
         const inviteRes = await fetch(`${SUPABASE_URL_VAL}/functions/v1/invite-to-group`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-          body: JSON.stringify({ purchaseId: purchase.id }),
+          body: JSON.stringify({ purchaseId: purchase.id, isJarvisIndustries: isJI }),
         });
         const inviteData = await inviteRes.json();
         console.log("[telegram-webhook] Invite result:", inviteData);
@@ -134,33 +159,35 @@ serve(async (req) => {
         inviteResult = '\n⚠️ Ошибка при добавлении в группу';
       }
 
-      // Редактируем сообщение в Telegram
+      const accessEndStr = isJI
+        ? `\n📅 Доступ до: *${accessEnd.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric' })}*`
+        : '';
+
       if (fromChatId && messageId) {
         await editMessageCaption(
           fromChatId,
           messageId,
           `✅ *ОДОБРЕНО* — @${adminUsername}\n\n` +
           `👤 Пользователь: *${userName}*\n` +
-          `📦 Товар: *${purchase.product_name}*\n` +
+          `📦 Товар: *${productDisplayName}*\n` +
           `💰 Сумма: *${purchase.price} ₽*\n` +
           `🕐 Рассмотрено: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}` +
+          accessEndStr +
           inviteResult
         );
       }
 
-      // Уведомляем второго админа
       for (const adminId of adminIds) {
         if (String(adminId) !== String(fromChatId)) {
-          await sendMessage(adminId, `✅ Заявка *${purchase.product_name}* для *${userName}* одобрена @${adminUsername}${inviteResult}`);
+          await sendMessage(adminId, `✅ Заявка *${productDisplayName}* для *${userName}* одобрена @${adminUsername}${accessEndStr}${inviteResult}`);
         }
       }
 
-      console.log("[telegram-webhook] Purchase approved:", purchase.id);
+      console.log("[telegram-webhook] Purchase approved:", purchase.id, isJI ? `access until ${accessEnd.toISOString()}` : '');
 
-    } else if (action === 'no') {
-      // Отклоняем покупку
+    } else if (action === 'no' || action === 'ji_no') {
       await supabase
-        .from('purchases')
+        .from(tableName)
         .update({ status: 'rejected', reviewed_at: new Date().toISOString() })
         .eq('id', purchase.id);
 
@@ -172,7 +199,7 @@ serve(async (req) => {
           messageId,
           `❌ *ОТКЛОНЕНО* — @${adminUsername}\n\n` +
           `👤 Пользователь: *${userName}*\n` +
-          `📦 Товар: *${purchase.product_name}*\n` +
+          `📦 Товар: *${productDisplayName}*\n` +
           `💰 Сумма: *${purchase.price} ₽*\n` +
           `🕐 Рассмотрено: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
         );
@@ -180,7 +207,7 @@ serve(async (req) => {
 
       for (const adminId of adminIds) {
         if (String(adminId) !== String(fromChatId)) {
-          await sendMessage(adminId, `❌ Заявка *${purchase.product_name}* для *${userName}* отклонена @${adminUsername}`);
+          await sendMessage(adminId, `❌ Заявка *${productDisplayName}* для *${userName}* отклонена @${adminUsername}`);
         }
       }
 
@@ -195,9 +222,9 @@ serve(async (req) => {
         .update({ is_blocked: true, block_reason: `Заблокирован администратором @${adminUsername}` })
         .eq('id', blockProfileId);
 
-      // Также отклоняем заявку
+      // Также отклоняем заявку (в нужной таблице)
       await supabase
-        .from('purchases')
+        .from(tableName)
         .update({ status: 'rejected', reviewed_at: new Date().toISOString() })
         .eq('id', purchase.id);
 
@@ -210,7 +237,7 @@ serve(async (req) => {
           `🚫 *ЗАБЛОКИРОВАН* — @${adminUsername}\n\n` +
           `👤 Пользователь: *${userName}*\n` +
           `📱 Telegram ID: \`${userTelegramId}\`\n` +
-          `📦 Товар: *${purchase.product_name}*\n` +
+          `📦 Товар: *${productDisplayName}*\n` +
           `🕐 Заблокирован: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
         );
       }

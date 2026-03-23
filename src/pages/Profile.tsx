@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, Calendar, Clock, ShoppingBag, LogOut, ChevronRight, RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wallet, Calendar, Clock, ShoppingBag, LogOut, ChevronRight, RefreshCw, ExternalLink, Loader2, Timer, Zap } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useCurrency } from '@/hooks/use-currency';
 import { useAuth } from '@/hooks/use-auth';
@@ -73,12 +73,12 @@ const Profile = () => {
     if (data.purchases) setPurchases(data.purchases as Purchase[]);
   };
 
-  const handleGetProduct = async (purchaseId: string) => {
+  const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean) => {
     setInvitingId(purchaseId);
     const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-      body: JSON.stringify({ purchaseId }),
+      body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
     });
     const data = await res.json();
     if (data.invite_link) {
@@ -252,13 +252,33 @@ const Profile = () => {
                     <p className="text-zinc-600 text-sm font-medium">Покупок пока нет</p>
                   </div>
                 ) : (
-                  purchases.map((item) => {
+                  purchases.map((item: Purchase & { is_jarvis_industries?: boolean; access_start?: string; access_end?: string; tokens?: number; tier?: string }) => {
                     const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+                    const isJI = item.is_jarvis_industries;
+
+                    // Для JI — считаем оставшиеся дни
+                    let accessDaysLeft: number | null = null;
+                    let accessExpired = false;
+                    if (isJI && item.access_end) {
+                      const endDate = new Date(item.access_end);
+                      const now = new Date();
+                      const diff = endDate.getTime() - now.getTime();
+                      accessDaysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+                      accessExpired = diff <= 0;
+                    }
+
                     return (
                       <div key={item.id} className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-colors ${statusCfg.bg}`}>
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex flex-col gap-1 min-w-0">
-                            <span className="font-bold text-base sm:text-lg text-white truncate">{item.product_name}</span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-base sm:text-lg text-white truncate">{item.product_name}</span>
+                              {isJI && item.tokens && (
+                                <span className="flex items-center gap-1 text-[9px] font-black bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full border border-white/10">
+                                  <Zap size={9} />{item.tokens.toLocaleString('ru-RU')} токенов
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2">
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusCfg.dot} ${item.status === 'pending' ? 'animate-pulse' : ''}`} />
                               <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest ${statusCfg.color}`}>
@@ -277,6 +297,39 @@ const Profile = () => {
                           </div>
                         </div>
 
+                        {/* Блок доступа для Jarvis Industries */}
+                        {isJI && item.status === 'approved' && item.access_end && (
+                          <div className={`mt-3 pt-3 border-t ${accessExpired ? 'border-red-500/20' : 'border-white/5'}`}>
+                            <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${accessExpired ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/5 border border-white/5'}`}>
+                              <div className="flex items-center gap-2">
+                                <Timer size={13} className={accessExpired ? 'text-red-400' : accessDaysLeft !== null && accessDaysLeft <= 5 ? 'text-yellow-400' : 'text-green-400'} />
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Доступ до</p>
+                                  <p className={`text-xs font-bold ${accessExpired ? 'text-red-400' : 'text-white'}`}>
+                                    {new Date(item.access_end).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    {' '}
+                                    {new Date(item.access_end).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} МСК
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`text-right`}>
+                                {accessExpired ? (
+                                  <span className="text-[10px] font-black text-red-400 bg-red-500/10 px-2 py-1 rounded-lg">ИСТЁК</span>
+                                ) : (
+                                  <span className={`text-sm font-black ${accessDaysLeft !== null && accessDaysLeft <= 5 ? 'text-yellow-400' : 'text-green-400'}`}>
+                                    {accessDaysLeft} дн.
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {item.access_start && (
+                              <p className="text-[9px] text-zinc-600 mt-1.5 px-1">
+                                Активирован: {new Date(item.access_start).toLocaleDateString('ru-RU')} в {new Date(item.access_start).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
                         {item.status === 'pending' && (
                           <div className="mt-3 pt-3 border-t border-yellow-400/10">
                             <p className="text-xs text-yellow-300/70">
@@ -285,10 +338,12 @@ const Profile = () => {
                           </div>
                         )}
                         {item.status === 'approved' && (
-                          <div className="mt-3 pt-3 border-t border-green-400/10 space-y-3">
-                            <p className="text-xs text-green-300/70">
-                              🎉 Оплата подтверждена! Нажмите кнопку чтобы получить доступ к группе.
-                            </p>
+                          <div className={`mt-3 pt-3 border-t border-green-400/10 space-y-3 ${isJI && item.access_end ? 'mt-2 pt-2' : ''}`}>
+                            {!isJI && (
+                              <p className="text-xs text-green-300/70">
+                                🎉 Оплата подтверждена! Нажмите кнопку чтобы получить доступ к группе.
+                              </p>
+                            )}
                             {item.invited_to_group && !item.invite_link && !inviteLinks[item.id] ? (
                               <div className="flex items-center gap-2 text-xs text-green-400 font-bold bg-green-400/10 px-3 py-2 rounded-xl">
                                 <span className="w-2 h-2 rounded-full bg-green-400" />
@@ -303,10 +358,10 @@ const Profile = () => {
                                       window.open(link, '_blank');
                                     } else {
                                       setInviteErrors(prev => { const n = {...prev}; delete n[item.id]; return n; });
-                                      handleGetProduct(item.id);
+                                      handleGetProduct(item.id, isJI);
                                     }
                                   }}
-                                  disabled={invitingId === item.id}
+                                  disabled={invitingId === item.id || (isJI && accessExpired)}
                                   className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-xs sm:text-sm uppercase tracking-widest py-3 rounded-2xl transition-all active:scale-95"
                                 >
                                   {invitingId === item.id ? (

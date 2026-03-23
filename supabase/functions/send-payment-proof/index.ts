@@ -66,6 +66,9 @@ serve(async (req) => {
     const telegramId = formData.get('telegramId') as string;
     const paymentMethod = formData.get('paymentMethod') as string;
     const profileId = formData.get('profileId') as string;
+    // Jarvis Industries specific fields
+    const tier = formData.get('tier') as string | null;
+    const tokens = formData.get('tokens') ? Number(formData.get('tokens')) : null;
 
     if (!screenshot) {
       return new Response(JSON.stringify({ error: 'Скриншот не прикреплён' }), {
@@ -89,19 +92,50 @@ serve(async (req) => {
     const kztRate = rates['KZT'] || 4.8;
     const kztAmount = Math.ceil(rubAmount * kztRate);
 
-    // Создаём запись о покупке со статусом pending
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('purchases')
-      .insert({
-        profile_id: profileId,
-        product_id: productId || productName.toLowerCase().replace(/\s+/g, '_'),
-        product_name: productName,
-        price: rubAmount,
-        status: 'pending',
-        payment_method: paymentMethod,
-      })
-      .select()
-      .single();
+    // Определяем — это Jarvis Industries или обычный товар
+    const isJarvisIndustries = tier && tokens && productId.startsWith('jarvis_industries_');
+
+    let purchase: { id: string; product_name: string; price: number } | null = null;
+    let purchaseError: unknown = null;
+
+    if (isJarvisIndustries) {
+      // Пишем в отдельную таблицу jarvis_industries_purchases
+      const tierName = productName; // e.g. "Jarvis Industries MK-I"
+      const { data, error } = await supabase
+        .from('jarvis_industries_purchases')
+        .insert({
+          profile_id: profileId,
+          tier: tier,
+          tier_name: tierName,
+          tokens: tokens,
+          price: rubAmount,
+          status: 'pending',
+          payment_method: paymentMethod,
+          username: username,
+          telegram_id: telegramId,
+          purchased_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      purchase = data ? { id: data.id, product_name: data.tier_name, price: data.price } : null;
+      purchaseError = error;
+    } else {
+      // Обычный товар — пишем в purchases
+      const { data, error } = await supabase
+        .from('purchases')
+        .insert({
+          profile_id: profileId,
+          product_id: productId || productName.toLowerCase().replace(/\s+/g, '_'),
+          product_name: productName,
+          price: rubAmount,
+          status: 'pending',
+          payment_method: paymentMethod,
+        })
+        .select()
+        .single();
+      purchase = data;
+      purchaseError = error;
+    }
 
     if (purchaseError || !purchase) {
       console.error("[send-payment-proof] Failed to create purchase:", purchaseError);
@@ -110,28 +144,30 @@ serve(async (req) => {
       });
     }
 
-    console.log("[send-payment-proof] Purchase created:", purchase.id);
+    console.log("[send-payment-proof] Purchase created:", purchase.id, isJarvisIndustries ? "(JI)" : "(regular)");
+
+    const tierLabel = tier ? ` [${tier.toUpperCase()}${tokens ? ` · ${tokens.toLocaleString('ru-RU')} токенов` : ''}]` : '';
 
     const caption =
-      `🧾 *НОВАЯ ЗАЯВКА НА ОПЛАТУ*\n\n` +
+      `🧾 *НОВАЯ ЗАЯВКА НА ОПЛАТУ*${isJarvisIndustries ? ' 🏭' : ''}\n\n` +
       `👤 Пользователь: *${username}*\n` +
       `📱 Telegram ID: \`${telegramId}\`\n` +
-      `📦 Товар: *${productName}*\n` +
+      `📦 Товар: *${productName}*${tierLabel}\n` +
       `💳 Метод: *${paymentMethod}*${country ? ` (${country})` : ''}\n` +
       `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}\n\n` +
       `💰 Клиент платит: *${clientAmountStr}*\n` +
       `💵 Для вас (в тенге): *${kztAmount.toLocaleString('ru-RU')} ₸*\n\n` +
-      `🆔 ID заявки: \`${purchase.id}\``;
+      `🆔 ID заявки: \`${purchase.id}\`${isJarvisIndustries ? '\n📋 Таблица: jarvis_industries_purchases' : ''}`;
 
-    // Inline кнопки для админа
-    // ВАЖНО: callback_data не может превышать 64 байта!
-    // UUID = 36 символов, поэтому используем только первые 8 символов ID (достаточно уникально)
+    // Inline кнопки — добавляем префикс ji_ для Jarvis Industries
     const shortId = purchase.id.replace(/-/g, '').substring(0, 16);
+    const prefix = isJarvisIndustries ? 'ji_ok' : 'ok';
+    const prefixNo = isJarvisIndustries ? 'ji_no' : 'no';
     const inlineKeyboard = {
       inline_keyboard: [
         [
-          { text: '✅ Одобрить', callback_data: `ok:${shortId}` },
-          { text: '❌ Отклонить', callback_data: `no:${shortId}` },
+          { text: '✅ Одобрить', callback_data: `${prefix}:${shortId}` },
+          { text: '❌ Отклонить', callback_data: `${prefixNo}:${shortId}` },
         ],
         [
           { text: '🚫 Заблокировать профиль', callback_data: `bl:${shortId}` },
@@ -168,14 +204,15 @@ serve(async (req) => {
     }));
 
     // Сохраняем message_id для последующего редактирования
+    const tableName = isJarvisIndustries ? 'jarvis_industries_purchases' : 'purchases';
     if (firstMessageId) {
-      await supabase.from('purchases').update({ telegram_message_id: firstMessageId }).eq('id', purchase.id);
+      await supabase.from(tableName).update({ telegram_message_id: firstMessageId }).eq('id', purchase.id);
     }
 
     const allFailed = results.every(r => !r.ok);
     if (allFailed) {
       // Удаляем заявку если не удалось отправить
-      await supabase.from('purchases').delete().eq('id', purchase.id);
+      await supabase.from(tableName).delete().eq('id', purchase.id);
       return new Response(JSON.stringify({ error: `Ошибка Telegram: ${results[0]?.error}` }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
