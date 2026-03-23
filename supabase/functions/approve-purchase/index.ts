@@ -144,7 +144,28 @@ serve(async (req) => {
     if (action === 'ok' || action === 'ji_ok') {
       const now = new Date();
       const accessEnd = new Date(now);
-      accessEnd.setDate(accessEnd.getDate() + 30);
+
+      // Получаем данные тарифа из таблицы jarvis_tiers
+      let tokensCount = purchase.tokens || 0;
+      let durationDays = 30;
+
+      if (isJI) {
+        const { data: tierData } = await supabase
+          .from('jarvis_tiers')
+          .select('tokens_count, duration_days')
+          .eq('id', purchase.tier)
+          .single();
+
+        if (tierData) {
+          tokensCount = tierData.tokens_count;
+          durationDays = tierData.duration_days;
+          console.log(`[approve-purchase] Tier ${purchase.tier}: ${tokensCount} tokens, ${durationDays} days`);
+        } else {
+          console.warn(`[approve-purchase] Tier not found: ${purchase.tier}, using purchase.tokens=${tokensCount}`);
+        }
+      }
+
+      accessEnd.setDate(accessEnd.getDate() + durationDays);
 
       if (isJI) {
         await supabase.from('jarvis_industries_purchases').update({
@@ -152,6 +173,7 @@ serve(async (req) => {
           reviewed_at: now.toISOString(),
           access_start: now.toISOString(),
           access_end: accessEnd.toISOString(),
+          tokens: tokensCount,
         }).eq('id', purchaseId);
       } else {
         await supabase.from('purchases').update({
@@ -172,8 +194,10 @@ serve(async (req) => {
             profile_id: profileId || null,
             token,
             tier: purchase.tier,
+            tier_id: purchase.tier,
             tier_name: purchase.tier_name,
-            tokens_count: purchase.tokens,
+            tokens_count: tokensCount,
+            tokens_used: 0,
             telegram_id: userTelegramId,
             username: userName,
             issued_at: now.toISOString(),
@@ -185,7 +209,7 @@ serve(async (req) => {
           if (userTelegramId.startsWith('@id_')) {
             const userId = parseInt(userTelegramId.replace('@id_', ''), 10);
             if (!isNaN(userId)) {
-              sentToUser = await sendTokenToUser(userId, purchase.tier, purchase.tier_name, token, purchase.tokens, accessEnd);
+              sentToUser = await sendTokenToUser(userId, purchase.tier, purchase.tier_name, token, tokensCount, accessEnd);
             }
           }
 
