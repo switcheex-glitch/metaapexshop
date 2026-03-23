@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const BOT_TOKEN = '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU';
 const BOT_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const MINI_APP_URL = 'https://testzbt.vercel.app/miniapp';
+const MINI_APP_URL = 'https://testzbt2.vercel.app/miniapp';
 
 const TIER_INFO: Record<string, { name: string; tokens: number; color: string; emoji: string; bar: string }> = {
   mk1: { name: 'MK-I',   tokens: 10000, color: '🔵', emoji: '⚡', bar: '▓▓▓░░░░░░░' },
