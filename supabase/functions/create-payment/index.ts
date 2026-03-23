@@ -39,7 +39,18 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { amount, productName, profileId, currency = 'RUB', paymentMethodId = 'kaspi' } = body;
+    const {
+      amount,
+      productName,
+      productId,
+      profileId,
+      currency = 'RUB',
+      paymentMethodId = 'kaspi',
+      isJarvisIndustries = false,
+      tier = null,
+      tierName = null,
+      tokens = 0,
+    } = body;
 
     console.log("[create-payment] Request:", JSON.stringify(body));
 
@@ -51,8 +62,19 @@ serve(async (req) => {
     }
 
     const paymentMethod = PAYMENT_METHOD_MAP[paymentMethodId] ?? 12;
+    const normalizedProductId = productId || productName.toLowerCase().replace(/\s+/g, '_');
 
-    console.log("[create-payment] Creating payment", { amount, productName, profileId, currency, paymentMethod, paymentMethodId });
+    console.log("[create-payment] Creating payment", {
+      amount,
+      productName,
+      normalizedProductId,
+      profileId,
+      currency,
+      paymentMethod,
+      paymentMethodId,
+      isJarvisIndustries,
+      tier,
+    });
 
     const requestBody = {
       paymentMethod,
@@ -60,7 +82,16 @@ serve(async (req) => {
       description: `Покупка: ${productName}`,
       return: 'https://testzbt9.vercel.app/profile',
       failedUrl: 'https://testzbt9.vercel.app/',
-      payload: JSON.stringify({ profileId, productName, productId: productName.toLowerCase().replace(/\s+/g, '_'), price: Number(amount) }),
+      payload: JSON.stringify({
+        profileId,
+        productName,
+        productId: normalizedProductId,
+        price: Number(amount),
+        isJarvisIndustries,
+        tier,
+        tierName: tierName || productName,
+        tokens: Number(tokens) || 0,
+      }),
     };
 
     console.log("[create-payment] Sending to Platega:", JSON.stringify(requestBody));

@@ -81,13 +81,24 @@ const MANUAL_METHODS = [
   { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in@mail.ru' }] },
 ];
 
+const METHOD_NAMES: Record<string, string> = {
+  sbp: 'СБП',
+  cards_ru: 'Карты РФ',
+  crypto: 'Криптовалюта',
+  kaspi: 'Kaspi',
+  mono: 'MonoBank',
+  abank: 'АБанк',
+  pumb: 'Пумб',
+  rb: 'РБ',
+  paypal: 'PayPal',
+};
 
 interface JarvisIndustriesModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type Step = 'privacy' | 'info' | 'tier' | 'payment' | 'requisites' | 'screenshot' | 'sending' | 'success';
+type Step = 'privacy' | 'info' | 'tier' | 'payment' | 'pending' | 'requisites' | 'screenshot' | 'sending' | 'success';
 
 const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, onClose }) => {
   const { profile } = useAuth();
@@ -102,6 +113,9 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -112,6 +126,9 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     setScreenshot(null);
     setScreenshotPreview(null);
     setErrorMsg('');
+    setPaymentUrl(null);
+    setTransactionId(null);
+    setIsLoading(false);
   }, [isOpen]);
 
   useEffect(() => {
@@ -134,6 +151,9 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     setScreenshot(null);
     setScreenshotPreview(null);
     setErrorMsg('');
+    setPaymentUrl(null);
+    setTransactionId(null);
+    setIsLoading(false);
     onClose();
   };
 
@@ -142,7 +162,12 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     navigate('/profile');
   };
 
+  const handleCheckStatus = () => {
+    goToProfile();
+  };
+
   const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
+  const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
 
   const getPriceForMethod = (currency: string, symbol: string): string => {
     if (!selectedTier) return '';
@@ -161,12 +186,61 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     reader.readAsDataURL(file);
   };
 
+  const callPlatega = async () => {
+    if (!profile || !selectedTier || !selectedMethod) return;
+
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${SUPABASE_FN}/create-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+        },
+        body: JSON.stringify({
+          amount: selectedTier.price,
+          productName: selectedTier.fullName,
+          productId: `jarvis_industries_${selectedTier.id}`,
+          profileId: profile.id,
+          currency: 'RUB',
+          paymentMethodId: selectedMethod,
+          isJarvisIndustries: true,
+          tier: selectedTier.id,
+          tierName: selectedTier.fullName,
+          tokens: selectedTier.tokens,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('[JI] callPlatega response:', response.status, data);
+
+      if (!response.ok || data?.error) {
+        setErrorMsg(data?.error || `Ошибка создания платежа (${response.status})`);
+        return;
+      }
+
+      setPaymentUrl(data.redirect);
+      setTransactionId(data.transactionId);
+      setStep('pending');
+      window.open(data.redirect, '_blank');
+    } catch (e) {
+      console.error('[JI] callPlatega error:', e);
+      setErrorMsg('Ошибка соединения с платёжным сервисом');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendScreenshot = async () => {
     if (!screenshot || !profile || !selectedTier) return;
     setStep('sending');
     setErrorMsg('');
 
-    const methodName = selectedMethod || '';
+    const methodName = METHOD_NAMES[selectedMethod || ''] || selectedMethod || '';
 
     try {
       // 1. Создаём заявку в БД
@@ -234,6 +308,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
       case 'info': return 'Jarvis Industries';
       case 'tier': return 'Выберите тариф';
       case 'payment': return `Оплата — ${selectedTier?.name}`;
+      case 'pending': return 'Ожидание оплаты';
       case 'requisites': return 'Реквизиты';
       case 'screenshot': return '📎 Скриншот оплаты';
       case 'sending': return '📎 Скриншот оплаты';
@@ -247,6 +322,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
       case 'info': return 'Apex Technology — персональный цифровой дворецкий нового поколения';
       case 'tier': return 'Jarvis Industries — выберите подходящий тариф';
       case 'payment': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
+      case 'pending': return `${selectedTier?.fullName} — ожидаем подтверждение Platega`;
       case 'requisites': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
       case 'screenshot': return 'Прикрепите скриншот оплаты';
       case 'sending': return 'Отправляем заявку...';
@@ -458,16 +534,52 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                     setErrorMsg('');
                     if (MANUAL_METHODS.find(m => m.id === selectedMethod)) {
                       setStep('requisites');
-                    } else {
-                      setStep('screenshot');
+                      return;
+                    }
+                    if (isPlatega) {
+                      void callPlatega();
                     }
                   }}
-                  disabled={!selectedMethod}
+                  disabled={!selectedMethod || isLoading}
                   className="flex-1 h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 disabled:opacity-30 active:scale-95 transition-all"
                 >
-                  Оплатить {selectedTier.price.toLocaleString('ru-RU')} ₽
+                  {isLoading ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Открываем оплату...</span> : `Оплатить ${selectedTier.price.toLocaleString('ru-RU')} ₽`}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {step === 'pending' && selectedTier && (
+            <div className="space-y-4">
+              <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 space-y-3">
+                <p className="text-zinc-300 text-sm font-medium text-center">Страница оплаты открыта в новой вкладке.</p>
+                <div className="flex items-start gap-3 bg-white/3 rounded-xl p-3 border border-white/5">
+                  <User size={14} className="text-zinc-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-zinc-500 text-xs leading-relaxed">
+                    После оплаты перейдите в <span className="text-white font-bold">профиль</span>. Как только Platega подтвердит платёж, у вас автоматически появится доступ к <span className="text-white font-bold">{selectedTier.name}</span>.
+                  </p>
+                </div>
+                {transactionId && (
+                  <div className="rounded-xl border border-white/5 bg-black/40 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">Transaction ID</p>
+                    <p className="mt-1 font-mono text-xs text-zinc-300 break-all">{transactionId}</p>
+                  </div>
+                )}
+              </div>
+
+              {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
+
+              <Button onClick={handleCheckStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
+                <span className="flex items-center gap-2">
+                  <CheckCircle size={18} />
+                  Я оплатил — перейти в профиль
+                  <ArrowRight size={16} />
+                </span>
+              </Button>
+
+              <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
+                Открыть страницу оплаты снова
+              </button>
             </div>
           )}
 
