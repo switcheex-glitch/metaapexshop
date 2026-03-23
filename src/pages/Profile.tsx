@@ -14,8 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from '@/integrations/supabase/client';
 
-const PROFILE_API = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/profile-api';
 const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
@@ -66,36 +66,59 @@ const Profile = () => {
 
   const loadPurchases = async () => {
     if (!profile) return;
-    const res = await fetch(`${PROFILE_API}?action=get-purchases`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId: profile.id }),
-    });
-    const data = await res.json();
-    if (data.purchases) {
-      setPurchases(data.purchases as Purchase[]);
-      // Загружаем токены для JI-покупок через secure API
-      const jiIds = (data.purchases as Purchase[])
-        .filter((p: Purchase & { is_jarvis_industries?: boolean }) => p.is_jarvis_industries)
-        .map((p: Purchase) => p.id);
-      if (jiIds.length > 0) {
-        loadAppTokens(jiIds);
-      }
+    try {
+      // Обычные покупки
+      const { data: regularPurchases } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .order('purchased_at', { ascending: false });
+
+      // Jarvis Industries покупки
+      const { data: jiPurchases } = await supabase
+        .from('jarvis_industries_purchases')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .order('purchased_at', { ascending: false });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const normalizedJI = (jiPurchases || []).map((p: any) => ({
+        ...p,
+        product_id: `jarvis_industries_${p.tier}`,
+        product_name: p.tier_name,
+        is_jarvis_industries: true,
+      }));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allPurchases = [
+        ...(regularPurchases || []).map((p: any) => ({ ...p, is_jarvis_industries: false })),
+        ...normalizedJI,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ].sort((a: any, b: any) => new Date(b.purchased_at).getTime() - new Date(a.purchased_at).getTime());
+
+      setPurchases(allPurchases as unknown as Purchase[]);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const jiIds = normalizedJI.map((p: any) => p.id as string);
+      if (jiIds.length > 0) loadAppTokens(jiIds);
+    } catch (e) {
+      console.error('loadPurchases error:', e);
     }
   };
 
   const loadAppTokens = async (purchaseIds: string[]) => {
     try {
-      // Используем profile-api вместо прямого доступа к БД
-      const res = await fetch(`${PROFILE_API}?action=get-app-tokens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: profile!.id, purchaseIds }),
+      const { data: tokens } = await supabase
+        .from('jarvis_app_tokens')
+        .select('purchase_id, token')
+        .eq('is_active', true)
+        .in('purchase_id', purchaseIds);
+
+      const tokenMap: Record<string, string> = {};
+      (tokens || []).forEach((t: { purchase_id: string; token: string }) => {
+        tokenMap[t.purchase_id] = t.token;
       });
-      const data = await res.json();
-      if (data.tokens && typeof data.tokens === 'object') {
-        setAppTokens(data.tokens);
-      }
+      setAppTokens(tokenMap);
     } catch (e) {
       console.error('loadAppTokens error:', e);
     }

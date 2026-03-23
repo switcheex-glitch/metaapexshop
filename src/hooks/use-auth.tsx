@@ -1,28 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Profile } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import {
-  getTelegramUser,
   getTelegramWebApp,
   formatTelegramId,
   getTelegramDisplayName,
-  isInsideTelegram,
   type TelegramUser,
 } from '@/hooks/use-telegram';
 
-const PROFILE_API = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/profile-api';
-
-const callApi = async (action: string, body: object) => {
-  try {
-    const res = await fetch(`${PROFILE_API}?action=${action}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return res.json();
-  } catch (e) {
-    console.error(`[auth] API call failed (${action}):`, e);
-    return { error: 'Ошибка соединения с сервером. Попробуйте позже.' };
-  }
+const hashPassword = async (password: string): Promise<string> => {
+  const data = new TextEncoder().encode(password + 'vibe_salt_2024');
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 interface AuthContextType {
@@ -51,19 +40,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await loadProfile(stored);
         return;
       }
-
       setIsLoading(false);
     };
-
     init();
   }, []);
 
   const loadProfile = async (profileId: string) => {
-    const data = await callApi('get-profile', { profileId });
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
 
-    if (data.profile) {
-      setProfile(data.profile as Profile);
-    } else {
+      if (error || !data) {
+        localStorage.removeItem('vibe_profile_id');
+      } else {
+        setProfile(data as Profile);
+        // обновляем last_seen
+        await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', profileId);
+      }
+    } catch (e) {
+      console.error('[auth] loadProfile error:', e);
       localStorage.removeItem('vibe_profile_id');
     }
     setIsLoading(false);
@@ -71,46 +69,91 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshProfile = async () => {
     if (!profile) return;
-    const data = await callApi('get-profile', { profileId: profile.id });
-    if (data.profile) setProfile(data.profile as Profile);
+    const { data } = await supabase.from('profiles').select('*').eq('id', profile.id).single();
+    if (data) setProfile(data as Profile);
   };
 
   const login = async (telegramId: string, password: string): Promise<{ error: string | null }> => {
-    const data = await callApi('login', { telegramId, password });
+    try {
+      const formattedId = telegramId.startsWith('@') ? telegramId : `@${telegramId}`;
+      const hash = await hashPassword(password);
 
-    if (data.error) return { error: data.error };
+      // Проверяем существование аккаунта
+      const { data: exists } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('telegram_id', formattedId)
+        .maybeSingle();
 
-    setProfile(data.profile as Profile);
-    localStorage.setItem('vibe_profile_id', data.profile.id);
-    return { error: null };
+      if (!exists) {
+        return { error: 'Аккаунт не найден. Создайте новый.' };
+      }
+
+      // Проверяем пароль
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('telegram_id', formattedId)
+        .eq('password_hash', hash)
+        .maybeSingle();
+
+      if (error || !data) {
+        return { error: 'Неверный пароль' };
+      }
+
+      if (data.is_blocked) {
+        return { error: '🚫 Ваш профиль заблокирован. Обратитесь в поддержку.' };
+      }
+
+      await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', data.id);
+      setProfile(data as Profile);
+      localStorage.setItem('vibe_profile_id', data.id);
+      return { error: null };
+    } catch (e) {
+      console.error('[auth] login error:', e);
+      return { error: 'Ошибка соединения. Попробуйте позже.' };
+    }
+  };
+
+  const register = async (telegramId: string, username: string, password: string): Promise<{ error: string | null }> => {
+    try {
+      const formattedId = telegramId.startsWith('@') ? telegramId : `@${telegramId}`;
+
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('telegram_id', formattedId)
+        .maybeSingle();
+
+      if (existing) {
+        return { error: 'Аккаунт с этим Telegram ID уже существует. Войдите с паролем.' };
+      }
+
+      const hash = await hashPassword(password);
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({ telegram_id: formattedId, username, password_hash: hash, balance: 0 })
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error('[auth] register error:', error);
+        return { error: 'Ошибка при регистрации. Попробуйте снова.' };
+      }
+
+      setProfile(data as Profile);
+      localStorage.setItem('vibe_profile_id', data.id);
+      return { error: null };
+    } catch (e) {
+      console.error('[auth] register error:', e);
+      return { error: 'Ошибка соединения. Попробуйте позже.' };
+    }
   };
 
   const registerWithTelegram = async (tgUser: TelegramUser, password: string): Promise<{ error: string | null }> => {
     const telegramId = formatTelegramId(tgUser.id);
     const username = getTelegramDisplayName(tgUser);
-
-    const data = await callApi('register', {
-      telegramId,
-      username,
-      password,
-      avatarUrl: tgUser.photo_url || null,
-    });
-
-    if (data.error) return { error: data.error };
-
-    setProfile(data.profile as Profile);
-    localStorage.setItem('vibe_profile_id', data.profile.id);
-    return { error: null };
-  };
-
-  const register = async (telegramId: string, username: string, password: string): Promise<{ error: string | null }> => {
-    const data = await callApi('register', { telegramId, username, password });
-
-    if (data.error) return { error: data.error };
-
-    setProfile(data.profile as Profile);
-    localStorage.setItem('vibe_profile_id', data.profile.id);
-    return { error: null };
+    return register(telegramId, username, password);
   };
 
   const logout = () => {
