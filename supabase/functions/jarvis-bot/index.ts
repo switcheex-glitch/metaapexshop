@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BOT_TOKEN = Deno.env.get('JARVIS_TOKEN_BOT_TOKEN') || '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU';
+const BOT_TOKEN = Deno.env.get('JARVIS_TOKEN_BOT_TOKEN')!;
 const BOT_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const MINI_APP_URL = 'https://testzbt2.vercel.app/miniapp';
 

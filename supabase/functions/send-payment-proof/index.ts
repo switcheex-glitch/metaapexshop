@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const TELEGRAM_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN') || '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs';
+const TELEGRAM_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN')!;
 
 async function getLiveRates(): Promise<Record<string, number>> {
   try {

@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const TELEGRAM_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN') || '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs';
-const JARVIS_BOT_TOKEN = Deno.env.get('JARVIS_TOKEN_BOT_TOKEN') || '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU';
+const TELEGRAM_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN')!;
+const JARVIS_BOT_TOKEN = Deno.env.get('JARVIS_TOKEN_BOT_TOKEN')!;
 
 const TIER_INFO: Record<string, { emoji: string; bar: string; color: string }> = {
   mk1: { emoji: '⚡',     bar: '▓▓▓░░░░░░░', color: '🔵' },
