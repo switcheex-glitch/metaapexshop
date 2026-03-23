@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Пароль хранится только здесь — на сервере
-const ADMIN_PASSWORD_HASH = await hashString('ApexAdmin2025');
+// Пароль читается из Supabase Secrets — в коде его нет
+const ADMIN_PASSWORD_HASH = await hashString(Deno.env.get('ADMIN_PASSWORD')!);
 
 // Rate limiting: IP → { count, resetAt }
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
