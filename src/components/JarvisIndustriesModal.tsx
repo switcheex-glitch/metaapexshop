@@ -81,6 +81,8 @@ const MANUAL_METHODS = [
   { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in@mail.ru' }] },
 ];
 
+const APPROVE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/approve-purchase';
+
 interface JarvisIndustriesModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -215,11 +217,11 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
           const inlineKeyboard = {
             inline_keyboard: [
               [
-                { text: '✅ Одобрить', callback_data: `ji_ok:${shortId}` },
-                { text: '❌ Отклонить', callback_data: `ji_no:${shortId}` },
+                { text: '✅ Одобрить', url: `${APPROVE_FN}?action=ji_ok&id=${data.id}` },
+                { text: '❌ Отклонить', url: `${APPROVE_FN}?action=ji_no&id=${data.id}` },
               ],
               [
-                { text: '🚫 Заблокировать профиль', callback_data: `bl:${shortId}` },
+                { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${data.id}` },
               ],
             ],
           };

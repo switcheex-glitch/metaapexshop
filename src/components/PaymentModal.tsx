@@ -43,6 +43,8 @@ const METHOD_NAMES: Record<string, string> = {
   rb: 'РБ', paypal: 'PayPal',
 };
 
+const APPROVE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/approve-purchase';
+
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice }) => {
   const { profile } = useAuth();
   const { currency, convertPrice, getSymbol, convertTo } = useCurrency();
@@ -194,11 +196,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
           const inlineKeyboard = {
             inline_keyboard: [
               [
-                { text: '✅ Одобрить', callback_data: `${prefix}:${shortId}` },
-                { text: '❌ Отклонить', callback_data: `${prefixNo}:${shortId}` },
+                { text: '✅ Одобрить', url: `${APPROVE_FN}?action=${isJI ? 'ji_ok' : 'ok'}&id=${purchaseId}` },
+                { text: '❌ Отклонить', url: `${APPROVE_FN}?action=${isJI ? 'ji_no' : 'no'}&id=${purchaseId}` },
               ],
               [
-                { text: '🚫 Заблокировать профиль', callback_data: `bl:${shortId}` },
+                { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${purchaseId}` },
               ],
             ],
           };
