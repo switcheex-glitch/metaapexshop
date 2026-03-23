@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const BOT_TOKEN = '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU';
 const BOT_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const MINI_APP_URL = 'https://silent-penguin-scurry.lovable.app/miniapp';
 
 const TIER_INFO: Record<string, { name: string; tokens: number; color: string; emoji: string; bar: string }> = {
   mk1: { name: 'MK-I',   tokens: 10000, color: '🔵', emoji: '⚡', bar: '▓▓▓░░░░░░░' },
@@ -195,25 +196,21 @@ serve(async (req) => {
 
       console.log(`[jarvis-bot] Message from ${userId} (@${username}): ${text}`);
 
+      const mainKeyboard = {
+        inline_keyboard: [
+          [{ text: '🚀 Открыть JARVIS HUD', web_app: { url: MINI_APP_URL } }],
+          [{ text: '🔑 Получить токен', callback_data: 'get_token' }, { text: '📊 Статус', callback_data: 'check_status' }],
+          [{ text: '❓ Помощь', callback_data: 'help' }],
+        ],
+      };
+
       if (text === '/start' || text.startsWith('/start ')) {
-        await sendMessage(chatId, buildMainMenu(username), {
-          inline_keyboard: [
-            [{ text: '🔑 Получить токен доступа', callback_data: 'get_token' }],
-            [{ text: '📊 Статус подписки', callback_data: 'check_status' }],
-            [{ text: '❓ Помощь', callback_data: 'help' }],
-          ],
-        });
+        await sendMessage(chatId, buildMainMenu(username), mainKeyboard);
         return new Response('ok', { status: 200 });
       }
 
       // Любое другое сообщение — показываем меню
-      await sendMessage(chatId, buildMainMenu(username), {
-        inline_keyboard: [
-          [{ text: '🔑 Получить токен доступа', callback_data: 'get_token' }],
-          [{ text: '📊 Статус подписки', callback_data: 'check_status' }],
-          [{ text: '❓ Помощь', callback_data: 'help' }],
-        ],
-      });
+      await sendMessage(chatId, buildMainMenu(username), mainKeyboard);
     }
 
     // ── ОБРАБОТКА CALLBACK ───────────────────────────────────────────────
@@ -450,8 +447,8 @@ serve(async (req) => {
       if (data === 'back_main') {
         await editMessage(chatId, messageId, buildMainMenu(username), {
           inline_keyboard: [
-            [{ text: '🔑 Получить токен доступа', callback_data: 'get_token' }],
-            [{ text: '📊 Статус подписки', callback_data: 'check_status' }],
+            [{ text: '🚀 Открыть JARVIS HUD', web_app: { url: MINI_APP_URL } }],
+            [{ text: '🔑 Получить токен', callback_data: 'get_token' }, { text: '📊 Статус', callback_data: 'check_status' }],
             [{ text: '❓ Помощь', callback_data: 'help' }],
           ],
         });
