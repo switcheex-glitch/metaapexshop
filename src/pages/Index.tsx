@@ -19,7 +19,7 @@ const products = [
     description: 'Профессиональная платформа с тремя тарифами MK-I, MK-II, MK-III.',
     fullInfo: 'Jarvis Industries — профессиональная платформа с тремя тарифами.\n\nMK-I: 10 000 токенов — базовый доступ.\nMK-II: 30 000 токенов — расширенный доступ.\nMK-III: 60 000 токенов — максимальный доступ.\n\nКаждый тариф открывает доступ в отдельную закрытую группу.',
     price: '1490',
-    image: '/assets/jarvis-industries-mk1.jpg',
+    image: '/assets/jarvis-industries-mk3.jpg',
     isComingSoon: false,
     isNew: true
   },
