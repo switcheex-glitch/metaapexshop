@@ -43,7 +43,6 @@ const METHOD_NAMES: Record<string, string> = {
   rb: 'РБ', paypal: 'PayPal',
 };
 
-const APPROVE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/approve-purchase';
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice }) => {
   const { profile } = useAuth();
@@ -168,60 +167,28 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
         purchaseId = data.id;
       }
 
-      // 2. Отправляем фото + уведомление в Telegram напрямую
+      console.log('[PM] Purchase created:', purchaseId);
+
+      // 2. Отправляем уведомление через edge function
       try {
-        const [botRes, chatRes] = await Promise.all([
-          supabase.from('app_settings').select('value').eq('key', 'admin_bot_token').single(),
-          supabase.from('app_settings').select('value').eq('key', 'telegram_admin_chat_id').single(),
-        ]);
+        const fd = new FormData();
+        fd.append('purchase_id', purchaseId!);
+        fd.append('is_ji', isJI ? 'true' : 'false');
+        fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
 
-        const botToken = botRes.data?.value;
-        const adminChatId = chatRes.data?.value;
-
-        console.log('[PM] botToken present:', !!botToken, '| adminChatId:', adminChatId);
-        console.log('[PM] botRes error:', botRes.error, '| chatRes error:', chatRes.error);
-
-        if (botToken && adminChatId && purchaseId) {
-          const adminIds = adminChatId.split(',').map((id: string) => id.trim()).filter(Boolean);
-
-          for (const chatId of adminIds) {
-            const fd = new FormData();
-            fd.append('chat_id', chatId);
-            fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
-            fd.append('caption',
-              `🧾 НОВАЯ ЗАЯВКА НА ОПЛАТУ${isJI ? ' 🏭' : ''}\n\n` +
-              `👤 Пользователь: ${profile.username}\n` +
-              `📱 Telegram ID: ${profile.telegram_id}\n` +
-              `📦 Товар: ${productName}\n` +
-              `💳 Метод: ${methodName}\n` +
-              `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
-              `💰 Клиент платит: ${(productPrice || 0).toLocaleString('ru-RU')} руб\n\n` +
-              `ID заявки: ${purchaseId}`
-            );
-            fd.append('reply_markup', JSON.stringify({
-              inline_keyboard: [
-                [
-                  { text: '✅ Одобрить', callback_data: `${isJI ? 'ji_ok' : 'ok'}:${purchaseId}` },
-                  { text: '❌ Отклонить', callback_data: `${isJI ? 'ji_no' : 'no'}:${purchaseId}` },
-                ],
-                [
-                  { text: '🚫 Заблокировать профиль', callback_data: `bl:${purchaseId}` },
-                ],
-              ],
-            }));
-
-            const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-              method: 'POST',
-              body: fd,
-            });
-            const tgData = await tgRes.json();
-            console.log('[PM] Telegram sendPhoto response:', tgData.ok, tgData.description || tgData.error_code);
-          }
-        } else {
-          console.warn('[PM] Missing botToken or adminChatId — skipping Telegram notification');
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        const fnRes = await fetch('https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/send-notification', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || 'anon'}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+          },
+          body: fd,
+        });
+        const fnData = await fnRes.json();
+        console.log('[PM] send-notification result:', fnData);
       } catch (e) {
-        console.warn('[PM] Telegram photo send failed:', e);
+        console.warn('[PM] send-notification failed:', e);
       }
 
       setStatus('success');

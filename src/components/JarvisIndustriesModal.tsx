@@ -81,7 +81,6 @@ const MANUAL_METHODS = [
   { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in@mail.ru' }] },
 ];
 
-const APPROVE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/approve-purchase';
 
 interface JarvisIndustriesModalProps {
   isOpen: boolean;
@@ -170,7 +169,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     const methodName = selectedMethod || '';
 
     try {
-      // 1. Создаём заявку в БД напрямую
+      // 1. Создаём заявку в БД
       const { data, error } = await supabase
         .from('jarvis_industries_purchases')
         .insert({
@@ -190,62 +189,28 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
       if (error || !data) throw new Error(error?.message || 'Ошибка создания заявки');
 
-      // 2. Отправляем фото + уведомление в Telegram напрямую
+      console.log('[JI] Purchase created:', data.id);
+
+      // 2. Отправляем уведомление через edge function
       try {
-        const [botRes, chatRes] = await Promise.all([
-          supabase.from('app_settings').select('value').eq('key', 'admin_bot_token').single(),
-          supabase.from('app_settings').select('value').eq('key', 'telegram_admin_chat_id').single(),
-        ]);
+        const fd = new FormData();
+        fd.append('purchase_id', data.id);
+        fd.append('is_ji', 'true');
+        fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
 
-        const botToken = botRes.data?.value;
-        const adminChatId = chatRes.data?.value;
-
-        console.log('[JI] botToken present:', !!botToken, '| adminChatId:', adminChatId);
-        console.log('[JI] botRes error:', botRes.error, '| chatRes error:', chatRes.error);
-
-        if (botToken && adminChatId) {
-          const adminIds = adminChatId.split(',').map((id: string) => id.trim()).filter(Boolean);
-
-          for (const chatId of adminIds) {
-            const fd = new FormData();
-            fd.append('chat_id', chatId);
-            fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
-            fd.append('caption',
-              `🧾 НОВАЯ ЗАЯВКА — JARVIS INDUSTRIES 🏭\n\n` +
-              `👤 Пользователь: ${profile.username}\n` +
-              `📱 Telegram ID: ${profile.telegram_id}\n` +
-              `📦 Тариф: ${selectedTier.fullName}\n` +
-              `⚡ Токены: ${selectedTier.tokens.toLocaleString('ru-RU')}\n` +
-              `💰 Клиент платит: ${selectedTier.price.toLocaleString('ru-RU')} руб\n` +
-              `💳 Метод: ${methodName}\n` +
-              `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
-              `ID заявки: ${data.id}\n` +
-              `Таблица: jarvisindustriespurchases`
-            );
-            fd.append('reply_markup', JSON.stringify({
-              inline_keyboard: [
-                [
-                  { text: '✅ Одобрить', callback_data: `ji_ok:${data.id}` },
-                  { text: '❌ Отклонить', callback_data: `ji_no:${data.id}` },
-                ],
-                [
-                  { text: '🚫 Заблокировать профиль', callback_data: `bl:${data.id}` },
-                ],
-              ],
-            }));
-
-            const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-              method: 'POST',
-              body: fd,
-            });
-            const tgData = await tgRes.json();
-            console.log('[JI] Telegram sendPhoto response:', tgData.ok, tgData.description || tgData.error_code);
-          }
-        } else {
-          console.warn('[JI] Missing botToken or adminChatId — skipping Telegram notification');
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        const fnRes = await fetch('https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/send-notification', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || 'anon'}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+          },
+          body: fd,
+        });
+        const fnData = await fnRes.json();
+        console.log('[JI] send-notification result:', fnData);
       } catch (e) {
-        console.warn('[JI] Telegram photo send failed:', e);
+        console.warn('[JI] send-notification failed:', e);
       }
 
       setStep('success');
