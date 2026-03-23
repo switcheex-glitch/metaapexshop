@@ -12,12 +12,17 @@ import {
 const PROFILE_API = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/profile-api';
 
 const callApi = async (action: string, body: object) => {
-  const res = await fetch(`${PROFILE_API}?action=${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${PROFILE_API}?action=${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  } catch (e) {
+    console.error(`[auth] API call failed (${action}):`, e);
+    return { error: 'Ошибка соединения с сервером. Попробуйте позже.' };
+  }
 };
 
 interface AuthContextType {

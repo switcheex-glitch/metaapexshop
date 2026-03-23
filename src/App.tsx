@@ -26,12 +26,7 @@ function AppInit() {
       document.documentElement.style.setProperty('--tg-color-scheme', 'dark');
     }
 
-    // Регистрируем Telegram webhook
-    fetch('https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/setup-webhook', {
-      method: 'POST',
-    }).then(r => r.json()).then(d => {
-      console.log('[App] Telegram webhook setup:', d);
-    }).catch(() => {});
+    // Webhook регистрируется через setup-webhook edge function вручную при необходимости
   }, []);
   return null;
 }
