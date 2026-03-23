@@ -204,6 +204,44 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // ── ADMIN: удаление подписки ─────────────────────────────────────
+    if (action === 'admin-delete-purchase') {
+      if (!(await verifyAdmin())) {
+        return jsonResponse({ error: 'Unauthorized' }, 401);
+      }
+
+      const { purchaseId } = body;
+      if (!purchaseId || typeof purchaseId !== 'string') {
+        return jsonResponse({ error: 'purchaseId обязателен' }, 400);
+      }
+
+      console.log(`[secure-api] Deleting purchase ${purchaseId}`);
+
+      // Удаляем связанные токены
+      const { error: tokensError } = await supabase
+        .from('jarvis_app_tokens')
+        .delete()
+        .eq('purchase_id', purchaseId);
+
+      if (tokensError) {
+        console.error('[secure-api] Error deleting tokens:', tokensError);
+      }
+
+      // Удаляем подписку
+      const { error: purchaseError } = await supabase
+        .from('jarvis_industries_purchases')
+        .delete()
+        .eq('id', purchaseId);
+
+      if (purchaseError) {
+        console.error('[secure-api] Error deleting purchase:', purchaseError);
+        return jsonResponse({ error: purchaseError.message }, 500);
+      }
+
+      console.log(`[secure-api] Purchase ${purchaseId} deleted successfully`);
+      return jsonResponse({ success: true });
+    }
+
     return jsonResponse({ error: 'Unknown action' }, 400);
 
   } catch (e) {

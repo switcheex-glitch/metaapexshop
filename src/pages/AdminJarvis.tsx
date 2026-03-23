@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RefreshCw, LogOut, Users, Timer, CheckCircle, XCircle,
-  Clock, Zap, Search, AlertTriangle, ArrowLeft, Key, Copy
+  Clock, Zap, Search, AlertTriangle, ArrowLeft, Key, Copy, Trash2
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
@@ -94,6 +94,8 @@ const AdminJarvis: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'tokens'>('subscriptions');
   const [tokens, setTokens] = useState<AppToken[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -126,6 +128,34 @@ const AdminJarvis: React.FC = () => {
     navigator.clipboard.writeText(token);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
+  };
+
+  const handleDeletePurchase = async (purchaseId: string) => {
+    if (confirmDeleteId !== purchaseId) {
+      setConfirmDeleteId(purchaseId);
+      setTimeout(() => setConfirmDeleteId(null), 5000);
+      return;
+    }
+    setDeletingId(purchaseId);
+    setConfirmDeleteId(null);
+    try {
+      const res = await fetch(`${SECURE_API}?action=admin-delete-purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: sessionStorage.getItem('apex_admin_pwd') || '',
+          purchaseId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPurchases(prev => prev.filter(p => p.id !== purchaseId));
+        setTokens(prev => prev.filter(t => t.purchase_id !== purchaseId));
+      }
+    } catch (e) {
+      console.error('Delete error:', e);
+    }
+    setDeletingId(null);
   };
 
   useEffect(() => {
@@ -608,8 +638,8 @@ const AdminJarvis: React.FC = () => {
                         </p>
                       )}
 
-                      {/* Warning indicators */}
-                      <div className="flex gap-1">
+                      {/* Warning indicators + delete */}
+                      <div className="flex gap-1 items-center">
                         {p.warned_3days && (
                           <span className="text-[9px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-lg">
                             ⚠️ 3д
@@ -623,6 +653,23 @@ const AdminJarvis: React.FC = () => {
                         {p.invited_to_group && (
                           <span className="text-[9px] bg-green-500/10 text-green-400 border border-green-500/20 px-1.5 py-0.5 rounded-lg">
                             ✓ в группе
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleDeletePurchase(p.id)}
+                          disabled={deletingId === p.id}
+                          className={`ml-1 p-1.5 rounded-lg transition-all ${
+                            confirmDeleteId === p.id
+                              ? 'bg-red-500 text-white animate-pulse'
+                              : 'bg-white/5 hover:bg-red-500/20 text-zinc-600 hover:text-red-400'
+                          } disabled:opacity-50`}
+                          title={confirmDeleteId === p.id ? 'Нажмите ещё раз для подтверждения' : 'Удалить подписку'}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                        {confirmDeleteId === p.id && (
+                          <span className="text-[9px] text-red-400 font-bold animate-pulse">
+                            Подтвердите!
                           </span>
                         )}
                       </div>
