@@ -222,15 +222,14 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
               `ID заявки: ${data.id}\n` +
               `Таблица: jarvisindustriespurchases`
             );
-            // Убираем parse_mode чтобы избежать ошибок форматирования
             fd.append('reply_markup', JSON.stringify({
               inline_keyboard: [
                 [
-                  { text: '✅ Одобрить', url: `${APPROVE_FN}?action=ji_ok&id=${data.id}` },
-                  { text: '❌ Отклонить', url: `${APPROVE_FN}?action=ji_no&id=${data.id}` },
+                  { text: '✅ Одобрить', callback_data: `ji_ok:${data.id}` },
+                  { text: '❌ Отклонить', callback_data: `ji_no:${data.id}` },
                 ],
                 [
-                  { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${data.id}` },
+                  { text: '🚫 Заблокировать профиль', callback_data: `bl:${data.id}` },
                 ],
               ],
             }));

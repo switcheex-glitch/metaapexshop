@@ -201,11 +201,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
             fd.append('reply_markup', JSON.stringify({
               inline_keyboard: [
                 [
-                  { text: '✅ Одобрить', url: `${APPROVE_FN}?action=${isJI ? 'ji_ok' : 'ok'}&id=${purchaseId}` },
-                  { text: '❌ Отклонить', url: `${APPROVE_FN}?action=${isJI ? 'ji_no' : 'no'}&id=${purchaseId}` },
+                  { text: '✅ Одобрить', callback_data: `${isJI ? 'ji_ok' : 'ok'}:${purchaseId}` },
+                  { text: '❌ Отклонить', callback_data: `${isJI ? 'ji_no' : 'no'}:${purchaseId}` },
                 ],
                 [
-                  { text: '🚫 Заблокировать профиль', url: `${APPROVE_FN}?action=bl&id=${purchaseId}` },
+                  { text: '🚫 Заблокировать профиль', callback_data: `bl:${purchaseId}` },
                 ],
               ],
             }));

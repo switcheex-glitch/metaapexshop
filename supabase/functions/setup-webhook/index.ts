@@ -5,51 +5,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
-
-// Все боты и их webhook endpoints
-const BOTS = [
-  {
-    name: 'Admin Bot (payments)',
-    token: Deno.env.get('ADMIN_BOT_TOKEN')!,
-    webhook: `${SUPABASE_URL}/functions/v1/telegram-webhook`,
-  },
-  {
-    name: 'Jarvis Token Bot',
-    token: Deno.env.get('JARVIS_TOKEN_BOT_TOKEN')!,
-    webhook: `${SUPABASE_URL}/functions/v1/jarvis-bot`,
-  },
-];
-
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const results = [];
+    const ADMIN_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN')!;
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 
-    for (const bot of BOTS) {
-      console.log(`[setup-webhook] Registering webhook for ${bot.name}: ${bot.webhook}`);
+    const webhookUrl = `${SUPABASE_URL}/functions/v1/telegram-webhook`;
 
-      const res = await fetch(`https://api.telegram.org/bot${bot.token}/setWebhook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: bot.webhook }),
-      });
+    console.log('[setup-webhook] Setting webhook to:', webhookUrl);
 
-      const data = await res.json();
-      console.log(`[setup-webhook] ${bot.name} result:`, data);
-      results.push({ bot: bot.name, ...data });
-    }
+    const res = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: webhookUrl,
+        allowed_updates: ['callback_query'],
+        drop_pending_updates: true,
+      }),
+    });
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    const data = await res.json();
+    console.log('[setup-webhook] Result:', data);
+
+    // Также проверяем текущий webhook
+    const infoRes = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/getWebhookInfo`);
+    const infoData = await infoRes.json();
+    console.log('[setup-webhook] Webhook info:', infoData);
+
+    return new Response(JSON.stringify({ success: data.ok, result: data, webhookInfo: infoData }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    console.error('[setup-webhook] Error:', error);
-    return new Response(JSON.stringify({ error: String(error) }), {
+
+  } catch (e) {
+    console.error('[setup-webhook] Error:', e);
+    return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
