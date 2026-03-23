@@ -9,23 +9,23 @@ const corsHeaders = {
 // Маппинг тарифа → бот + группа
 const TIER_CONFIG: Record<string, { botToken: string; chatId: string; name: string }> = {
   mk1: {
-    botToken: '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw',
+    botToken: Deno.env.get('JI_MK1_BOT_TOKEN') || '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw',
     chatId: '-1003743900341',
     name: 'Jarvis Industries MK-I',
   },
   mk2: {
-    botToken: '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k',
+    botToken: Deno.env.get('JI_MK2_BOT_TOKEN') || '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k',
     chatId: '-1003794537001',
     name: 'Jarvis Industries MK-II',
   },
   mk3: {
-    botToken: '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4',
+    botToken: Deno.env.get('JI_MK3_BOT_TOKEN') || '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4',
     chatId: '-1003876790984',
     name: 'Jarvis Industries MK-III',
   },
 };
 
-const ADMIN_BOT_TOKEN = '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs';
+const ADMIN_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN') || '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs';
 
 // Отправить сообщение пользователю через бот тарифа
 async function sendUserMessage(botToken: string, userId: number, text: string) {

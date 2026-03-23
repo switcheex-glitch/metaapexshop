@@ -11,12 +11,12 @@ const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
 const BOTS = [
   {
     name: 'Admin Bot (payments)',
-    token: '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs',
+    token: Deno.env.get('ADMIN_BOT_TOKEN') || '8732879647:AAGDmixVo2A88pL0Pr5TJW-QwgjxaCOBACs',
     webhook: `${SUPABASE_URL}/functions/v1/telegram-webhook`,
   },
   {
     name: 'Jarvis Token Bot',
-    token: '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU',
+    token: Deno.env.get('JARVIS_TOKEN_BOT_TOKEN') || '8673468477:AAGpYEuvFsITBl-ZLOFKqDICVpLvEUG_gyU',
     webhook: `${SUPABASE_URL}/functions/v1/jarvis-bot`,
   },
 ];

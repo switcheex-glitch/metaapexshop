@@ -9,7 +9,6 @@ import {
 
 const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
 const SECURE_API = `${SUPABASE_URL}/functions/v1/secure-api`;
-const ADMIN_PASSWORD = 'ApexAdmin2025';
 
 const TIER_COLORS: Record<string, { border: string; bg: string; badge: string; text: string; dot: string }> = {
   mk1: { border: 'border-cyan-500/30',  bg: 'bg-cyan-950/20',  badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',  text: 'text-cyan-400',  dot: 'bg-cyan-400' },
@@ -82,6 +81,7 @@ const AdminJarvis: React.FC = () => {
   const [authed, setAuthed] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const [purchases, setPurchases] = useState<JIPurchase[]>([]);
   const [loading, setLoading] = useState(false);
@@ -141,15 +141,32 @@ const AdminJarvis: React.FC = () => {
     }
   }, [authed, loadData]);
 
-  const handleLogin = () => {
-    if (passwordInput === ADMIN_PASSWORD) {
-      setAuthed(true);
-      sessionStorage.setItem('apex_admin_authed', '1');
-      sessionStorage.setItem('apex_admin_pwd', passwordInput);
-    } else {
-      setPasswordError('Неверный пароль');
-      setPasswordInput('');
+  const handleLogin = async () => {
+    if (!passwordInput.trim()) {
+      setPasswordError('Введите пароль');
+      return;
     }
+    setLoginLoading(true);
+    setPasswordError('');
+    try {
+      const res = await fetch(`${SECURE_API}?action=admin-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAuthed(true);
+        sessionStorage.setItem('apex_admin_authed', '1');
+        sessionStorage.setItem('apex_admin_pwd', passwordInput);
+      } else {
+        setPasswordError(data.error || 'Неверный пароль');
+        setPasswordInput('');
+      }
+    } catch {
+      setPasswordError('Ошибка соединения');
+    }
+    setLoginLoading(false);
   };
 
   const handleRunCheck = async () => {
@@ -225,9 +242,10 @@ const AdminJarvis: React.FC = () => {
             {passwordError && <p className="text-red-400 text-xs px-1">{passwordError}</p>}
             <button
               onClick={handleLogin}
-              className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 transition-all active:scale-95"
+              disabled={loginLoading}
+              className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 transition-all active:scale-95 disabled:opacity-50"
             >
-              Войти
+              {loginLoading ? 'Проверка...' : 'Войти'}
             </button>
           </div>
           <button onClick={() => navigate('/')} className="w-full text-zinc-600 text-sm hover:text-zinc-400 transition-colors flex items-center justify-center gap-2">

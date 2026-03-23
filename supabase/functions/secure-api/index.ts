@@ -6,7 +6,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ADMIN_PASSWORD = 'ApexAdmin2025';
+// Пароль хранится только здесь — на сервере
+const ADMIN_PASSWORD_HASH = await hashString('ApexAdmin2025');
+
+// Rate limiting: IP → { count, resetAt }
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
+async function hashString(str: string): Promise<string> {
+  const data = new TextEncoder().encode(str + 'apex_secure_salt_2025');
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+
+  if (entry) {
+    if (now > entry.resetAt) {
+      loginAttempts.delete(ip);
+    } else if (entry.count >= MAX_LOGIN_ATTEMPTS) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      return { allowed: false, retryAfter };
+    }
+  }
+  return { allowed: true };
+}
+
+function recordLoginAttempt(ip: string) {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (entry && now < entry.resetAt) {
+    entry.count++;
+  } else {
+    loginAttempts.set(ip, { count: 1, resetAt: now + LOCKOUT_MINUTES * 60 * 1000 });
+  }
+}
+
+function clearLoginAttempts(ip: string) {
+  loginAttempts.delete(ip);
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -19,8 +60,52 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
     const body = req.method === 'POST' ? await req.json() : {};
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
+      || 'unknown';
 
-    console.log(`[secure-api] action=${action}`);
+    console.log(`[secure-api] action=${action} ip=${clientIp}`);
+
+    // ── ADMIN LOGIN (с rate limiting) ────────────────────────────────
+    if (action === 'admin-login') {
+      const rateCheck = checkRateLimit(clientIp);
+      if (!rateCheck.allowed) {
+        console.warn(`[secure-api] Rate limited: ${clientIp}`);
+        return jsonResponse({
+          error: `Слишком много попыток. Повторите через ${rateCheck.retryAfter} сек.`,
+        }, 429);
+      }
+
+      const { password } = body;
+      if (!password || typeof password !== 'string') {
+        return jsonResponse({ error: 'Пароль обязателен' }, 400);
+      }
+
+      const inputHash = await hashString(password);
+      if (inputHash !== ADMIN_PASSWORD_HASH) {
+        recordLoginAttempt(clientIp);
+        const entry = loginAttempts.get(clientIp);
+        const remaining = MAX_LOGIN_ATTEMPTS - (entry?.count || 0);
+        console.warn(`[secure-api] Failed login from ${clientIp}, remaining: ${remaining}`);
+        return jsonResponse({
+          error: remaining > 0
+            ? `Неверный пароль. Осталось попыток: ${remaining}`
+            : `Аккаунт заблокирован на ${LOCKOUT_MINUTES} минут`,
+        }, 401);
+      }
+
+      clearLoginAttempts(clientIp);
+      console.log(`[secure-api] Admin login success from ${clientIp}`);
+      return jsonResponse({ success: true });
+    }
+
+    // ── Проверка пароля для admin-* actions ──────────────────────────
+    async function verifyAdmin(): Promise<boolean> {
+      const { password } = body;
+      if (!password || typeof password !== 'string') return false;
+      const inputHash = await hashString(password);
+      return inputHash === ADMIN_PASSWORD_HASH;
+    }
 
     // ── MINI APP: загрузка данных по Telegram ID ──────────────────────
     if (action === 'miniapp-load') {
@@ -31,7 +116,6 @@ serve(async (req) => {
 
       const telegramIdStr = `@id_${telegramId}`;
 
-      // Ищем профиль
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, username, telegram_id, is_blocked')
@@ -46,7 +130,6 @@ serve(async (req) => {
         return jsonResponse({ screen: 'blocked' });
       }
 
-      // Загружаем активные подписки
       const { data: purchases } = await supabase
         .from('jarvis_industries_purchases')
         .select('id, tier, tier_name, tokens, price, access_start, access_end, status')
@@ -62,7 +145,6 @@ serve(async (req) => {
         return jsonResponse({ screen: 'no_access' });
       }
 
-      // Загружаем токены
       const ids = active.map(p => p.id);
       const { data: tokens } = await supabase
         .from('jarvis_app_tokens')
@@ -81,10 +163,9 @@ serve(async (req) => {
       return jsonResponse({ screen: 'dashboard', subscriptions });
     }
 
-    // ── ADMIN: загрузка данных (требует пароль) ──────────────────────
+    // ── ADMIN: загрузка данных ───────────────────────────────────────
     if (action === 'admin-load') {
-      const { password } = body;
-      if (password !== ADMIN_PASSWORD) {
+      if (!(await verifyAdmin())) {
         return jsonResponse({ error: 'Unauthorized' }, 401);
       }
 
@@ -107,12 +188,10 @@ serve(async (req) => {
 
     // ── ADMIN: запуск проверки подписок ──────────────────────────────
     if (action === 'admin-check-subscriptions') {
-      const { password } = body;
-      if (password !== ADMIN_PASSWORD) {
+      if (!(await verifyAdmin())) {
         return jsonResponse({ error: 'Unauthorized' }, 401);
       }
 
-      // Вызываем check-subscriptions
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-subscriptions`, {
         method: 'POST',
         headers: {

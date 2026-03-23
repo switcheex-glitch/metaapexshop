@@ -6,8 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Бот для добавления в группы — ОСНОВНОЙ ADMIN БОТ (должен быть администратором групп)
-const INVITE_BOT_TOKEN = '8369304980:AAHoKP0bO3bKqWcEdc8PMxuOxIQqaYJ952A';
+const INVITE_BOT_TOKEN = Deno.env.get('INVITE_BOT_TOKEN') || '8369304980:AAHoKP0bO3bKqWcEdc8PMxuOxIQqaYJ952A';
 
 // Маппинг product_id → chat_id группы + бот токен
 const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: string }> = {
@@ -17,9 +16,9 @@ const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: 
   'vibewall':    { chatId: '-1002277771896', name: 'VibeWall' },
   'pccontrol':   { chatId: '-1002268406304', name: 'PcControl' },
   // Jarvis Industries тарифы — каждый со своим ботом
-  'jarvis_industries_mk1': { chatId: '-1003743900341', name: 'Jarvis Industries MK-I',   botToken: '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw' },
-  'jarvis_industries_mk2': { chatId: '-1003794537001', name: 'Jarvis Industries MK-II',  botToken: '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k' },
-  'jarvis_industries_mk3': { chatId: '-1003876790984', name: 'Jarvis Industries MK-III', botToken: '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4' },
+  'jarvis_industries_mk1': { chatId: '-1003743900341', name: 'Jarvis Industries MK-I',   botToken: Deno.env.get('JI_MK1_BOT_TOKEN') || '8739907500:AAHOsewfeDmX43NqqShgM92RlutoW9mKVmw' },
+  'jarvis_industries_mk2': { chatId: '-1003794537001', name: 'Jarvis Industries MK-II',  botToken: Deno.env.get('JI_MK2_BOT_TOKEN') || '8640809256:AAFopwnBaaofTJ0kTFEYqXxqD2kG4y_ga7k' },
+  'jarvis_industries_mk3': { chatId: '-1003876790984', name: 'Jarvis Industries MK-III', botToken: Deno.env.get('JI_MK3_BOT_TOKEN') || '8724071551:AAHTuJOJRYt3fjnWrlfcI_qS57vf4Zc4WY4' },
 };
 
 // Также маппинг по названию продукта (на случай если product_id не совпадает)
