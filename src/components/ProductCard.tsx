@@ -23,6 +23,7 @@ interface ProductCardProps {
   price: string;
   image: string;
   isComingSoon?: boolean;
+  isNew?: boolean;
   onPay: () => void;
   onInfo: () => void;
   salePrice?: number;
@@ -47,6 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   price,
   image,
   isComingSoon,
+  isNew,
   onPay,
   onInfo,
   salePrice
@@ -81,6 +83,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <Badge variant="outline" className="text-white border-white/40 bg-white/10 px-4 sm:px-6 py-1.5 sm:py-2 text-base sm:text-xl font-bold tracking-widest backdrop-blur-xl rounded-full">
               СКОРО
             </Badge>
+          </div>
+        )}
+
+        {/* NEW badge */}
+        {isNew && !isComingSoon && (
+          <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-cyan-400/40 blur-md animate-pulse" />
+              <div className="relative bg-cyan-400 text-black text-[10px] sm:text-xs font-black px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-lg shadow-cyan-400/40 tracking-widest uppercase">
+                ✦ NEW
+              </div>
+            </div>
           </div>
         )}
 

@@ -14,21 +14,22 @@ const JARVIS_INDUSTRIES_ID = 'jarvis-industries';
 
 const products = [
   {
-    id: 'jarvis-max',
-    name: 'Jarvis Max',
-    description: 'Голосовой помощник с встроенным искусственным интеллектом.',
-    fullInfo: 'Голосовой помощник с встроенным искусственным интеллектом.\n\nПонимает контекст, отвечает осмысленно, работает как полноценный цифровой ассистент.\n\nПлюс расширенный редактор команд для глубокой кастомизации.',
-    price: '6900',
-    image: '/assets/jarvis-max.jpg',
-    isComingSoon: false
-  },
-  {
     id: JARVIS_INDUSTRIES_ID,
     name: 'Jarvis Industries',
     description: 'Профессиональная платформа с тремя тарифами MK-I, MK-II, MK-III.',
     fullInfo: 'Jarvis Industries — профессиональная платформа с тремя тарифами.\n\nMK-I: 10 000 токенов — базовый доступ.\nMK-II: 30 000 токенов — расширенный доступ.\nMK-III: 60 000 токенов — максимальный доступ.\n\nКаждый тариф открывает доступ в отдельную закрытую группу.',
     price: '1490',
     image: '/assets/jarvis-industries-mk1.jpg',
+    isComingSoon: false,
+    isNew: true
+  },
+  {
+    id: 'jarvis-max',
+    name: 'Jarvis Max',
+    description: 'Голосовой помощник с встроенным искусственным интеллектом.',
+    fullInfo: 'Голосовой помощник с встроенным искусственным интеллектом.\n\nПонимает контекст, отвечает осмысленно, работает как полноценный цифровой ассистент.\n\nПлюс расширенный редактор команд для глубокой кастомизации.',
+    price: '6900',
+    image: '/assets/jarvis-max.jpg',
     isComingSoon: false
   },
   {
@@ -202,6 +203,7 @@ const Index = () => {
                   price={product.price}
                   image={product.image}
                   isComingSoon={product.isComingSoon}
+                  isNew={(product as any).isNew}
                   onPay={() => handlePay(product.name, product.id)}
                   onInfo={() => handleInfo(product.name)}
                   salePrice={discountedPrice}
