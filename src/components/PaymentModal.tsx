@@ -125,20 +125,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     const isJI = productId?.startsWith('jarvis_industries_');
 
     try {
-      // 1. Загружаем скриншот в Supabase Storage
+      // 1. Пробуем загрузить скриншот (не критично)
       let screenshotUrl: string | null = null;
       try {
         const ext = screenshot.name.split('.').pop() || 'jpg';
         const fileName = `${profile.id}_${Date.now()}.${ext}`;
-        const { data: uploadData } = await supabase.storage
+        const uploadResult = await supabase.storage
           .from('screenshots')
           .upload(fileName, screenshot, { contentType: screenshot.type });
-        if (uploadData) {
-          const { data: urlData } = supabase.storage.from('screenshots').getPublicUrl(fileName);
-          screenshotUrl = urlData?.publicUrl || null;
+        if (uploadResult.data && !uploadResult.error) {
+          const urlResult = supabase.storage.from('screenshots').getPublicUrl(fileName);
+          screenshotUrl = urlResult.data?.publicUrl || null;
         }
-      } catch (e) {
-        console.warn('Screenshot upload failed, continuing without it:', e);
+      } catch {
+        // Storage может не быть настроен — продолжаем без скриншота
       }
 
       // 2. Создаём заявку в БД

@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
 
+import { supabase } from '@/integrations/supabase/client';
+
 const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
 const TIERS = [
@@ -163,31 +165,72 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     setStep('sending');
     setErrorMsg('');
 
-    const fd = new FormData();
-    fd.append('screenshot', screenshot);
-    fd.append('productName', selectedTier.fullName);
-    fd.append('productId', `jarvis_industries_${selectedTier.id}`);
-    fd.append('rubAmount', String(selectedTier.price));
-    fd.append('country', selectedManual?.country || '🇷🇺');
-    fd.append('username', profile.username);
-    fd.append('telegramId', profile.telegram_id);
-    fd.append('paymentMethod', selectedMethod || '');
-    fd.append('profileId', profile.id);
-    fd.append('tier', selectedTier.id);
-    fd.append('tokens', String(selectedTier.tokens));
+    const methodName = selectedMethod || '';
 
-    const response = await fetch(`${SUPABASE_FN}/send-payment-proof`, {
-      method: 'POST',
-      body: fd,
-    });
+    try {
+      // 1. Пробуем загрузить скриншот (не критично)
+      let screenshotUrl: string | null = null;
+      try {
+        const ext = screenshot.name.split('.').pop() || 'jpg';
+        const fileName = `${profile.id}_${Date.now()}.${ext}`;
+        const uploadResult = await supabase.storage
+          .from('screenshots')
+          .upload(fileName, screenshot, { contentType: screenshot.type });
+        if (uploadResult.data && !uploadResult.error) {
+          const urlResult = supabase.storage.from('screenshots').getPublicUrl(fileName);
+          screenshotUrl = urlResult.data?.publicUrl || null;
+        }
+      } catch {
+        // Storage может не быть настроен — продолжаем без скриншота
+      }
 
-    const data = await response.json();
-    if (!response.ok || data?.error) {
-      setErrorMsg(data?.error || 'Ошибка отправки');
-      setStep('screenshot');
-    } else {
+      // 2. Создаём заявку в БД напрямую
+      const { data, error } = await supabase
+        .from('jarvis_industries_purchases')
+        .insert({
+          profile_id: profile.id,
+          tier: selectedTier.id,
+          tier_name: selectedTier.fullName,
+          tokens: selectedTier.tokens,
+          price: selectedTier.price,
+          status: 'pending',
+          payment_method: methodName,
+          username: profile.username,
+          telegram_id: profile.telegram_id,
+          screenshot_url: screenshotUrl,
+          purchased_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error || !data) throw new Error(error?.message || 'Ошибка создания заявки');
+
+      // 3. Пробуем отправить уведомление в Telegram (не критично)
+      try {
+        const fd = new FormData();
+        fd.append('screenshot', screenshot);
+        fd.append('productName', selectedTier.fullName);
+        fd.append('productId', `jarvis_industries_${selectedTier.id}`);
+        fd.append('rubAmount', String(selectedTier.price));
+        fd.append('country', selectedManual?.country || '🇷🇺');
+        fd.append('username', profile.username);
+        fd.append('telegramId', profile.telegram_id);
+        fd.append('paymentMethod', methodName);
+        fd.append('profileId', profile.id);
+        fd.append('tier', selectedTier.id);
+        fd.append('tokens', String(selectedTier.tokens));
+        await fetch(`${SUPABASE_FN}/send-payment-proof`, { method: 'POST', body: fd });
+      } catch {
+        // Telegram уведомление не критично
+      }
+
       setStep('success');
       setTimeout(() => goToProfile(), 3000);
+
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Ошибка отправки';
+      setErrorMsg(msg);
+      setStep('screenshot');
     }
   };
 
