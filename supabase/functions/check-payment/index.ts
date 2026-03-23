@@ -28,7 +28,6 @@ serve(async (req) => {
     const PLATEGA_MERCHANT_ID = Deno.env.get('PLATEGA_MERCHANT_ID');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
     const ADMIN_CHAT_ID = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID') || '';
 
     if (!PLATEGA_SECRET || !PLATEGA_MERCHANT_ID) {
@@ -125,18 +124,19 @@ serve(async (req) => {
         }
 
         // Автоматически добавляем пользователя в группу
-        if (SUPABASE_ANON_KEY) {
-          try {
-            const inviteRes = await fetch(`${SUPABASE_URL}/functions/v1/invite-to-group`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-              body: JSON.stringify({ purchaseId: purchase.id }),
-            });
-            const inviteData = await inviteRes.json();
-            console.log("[check-payment] Invite result:", inviteData);
-          } catch (e) {
-            console.error("[check-payment] Invite error:", e);
-          }
+        try {
+          const inviteRes = await fetch(`${SUPABASE_URL}/functions/v1/invite-to-group`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({ purchaseId: purchase.id }),
+          });
+          const inviteData = await inviteRes.json();
+          console.log("[check-payment] Invite result:", inviteData);
+        } catch (e) {
+          console.error("[check-payment] Invite error:", e);
         }
       }
     }

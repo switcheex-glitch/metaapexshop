@@ -26,7 +26,6 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const ADMIN_CHAT_ID = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID') || '';
     const PLATEGA_SECRET = Deno.env.get('PLATEGA_SECRET')!;
 
@@ -150,7 +149,10 @@ serve(async (req) => {
     try {
       const inviteRes = await fetch(`${SUPABASE_URL}/functions/v1/invite-to-group`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
         body: JSON.stringify({ purchaseId: purchase.id }),
       });
       const inviteData = await inviteRes.json();

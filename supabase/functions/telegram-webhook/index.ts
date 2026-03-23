@@ -254,12 +254,15 @@ serve(async (req) => {
 
       // ── Добавляем в группу ───────────────────────────────────────────────
       const SUPABASE_URL_VAL = Deno.env.get('SUPABASE_URL')!;
-      const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const SUPABASE_SRK = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       let inviteResult = '';
       try {
         const inviteRes = await fetch(`${SUPABASE_URL_VAL}/functions/v1/invite-to-group`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_SRK}`,
+          },
           body: JSON.stringify({ purchaseId: purchase.id, isJarvisIndustries: isJI }),
         });
         const inviteData = await inviteRes.json();
