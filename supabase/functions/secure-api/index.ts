@@ -6,9 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Пароль читается из Supabase Secrets — в коде его нет
-const ADMIN_PASSWORD_HASH = await hashString(Deno.env.get('ADMIN_PASSWORD')!);
-
 // Rate limiting: IP → { count, resetAt }
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -23,7 +20,6 @@ async function hashString(str: string): Promise<string> {
 function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
   const entry = loginAttempts.get(ip);
-
   if (entry) {
     if (now > entry.resetAt) {
       loginAttempts.delete(ip);
@@ -55,7 +51,11 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD') || '';
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Хэш пароля вычисляется внутри обработчика (не top-level await)
+    const ADMIN_PASSWORD_HASH = await hashString(ADMIN_PASSWORD);
 
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
@@ -217,7 +217,6 @@ serve(async (req) => {
 
       console.log(`[secure-api] Deleting purchase ${purchaseId}`);
 
-      // Удаляем связанные токены
       const { error: tokensError } = await supabase
         .from('jarvis_app_tokens')
         .delete()
@@ -227,7 +226,6 @@ serve(async (req) => {
         console.error('[secure-api] Error deleting tokens:', tokensError);
       }
 
-      // Удаляем подписку
       const { error: purchaseError } = await supabase
         .from('jarvis_industries_purchases')
         .delete()
