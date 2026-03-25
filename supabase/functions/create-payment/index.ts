@@ -19,6 +19,16 @@ const PAYMENT_METHOD_MAP: Record<string, number> = {
   crypto: 13,    // Криптовалюта
 };
 
+const METHOD_LABELS: Record<string, string> = {
+  sbp: 'СБП',
+  cards_ru: 'Карты РФ',
+  crypto: 'Криптовалюта',
+  kaspi: 'Kaspi',
+  mono: 'MonoBank',
+  rb: 'РБ',
+  paypal: 'PayPal',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -27,6 +37,8 @@ serve(async (req) => {
   try {
     const PLATEGA_SECRET = Deno.env.get('PLATEGA_SECRET');
     const PLATEGA_MERCHANT_ID = Deno.env.get('PLATEGA_MERCHANT_ID');
+    const ADMIN_BOT_TOKEN = Deno.env.get('ADMIN_BOT_TOKEN') || '';
+    const ADMIN_CHAT_ID = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID') || '';
 
     console.log("[create-payment] PLATEGA_SECRET present:", !!PLATEGA_SECRET, "| PLATEGA_MERCHANT_ID present:", !!PLATEGA_MERCHANT_ID);
 
@@ -64,26 +76,30 @@ serve(async (req) => {
     const paymentMethod = PAYMENT_METHOD_MAP[paymentMethodId] ?? 12;
     const normalizedProductId = productId || productName.toLowerCase().replace(/\s+/g, '_');
 
-    // Получаем telegram_id пользователя из профиля
+    // Получаем данные пользователя из профиля
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     let telegramId = '';
     let telegramIdNumeric = 0;
+    let username = 'Неизвестный';
     try {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const { data: profile } = await supabase
         .from('profiles')
-        .select('telegram_id')
+        .select('telegram_id, username')
         .eq('id', profileId)
         .maybeSingle();
       telegramId = profile?.telegram_id || '';
-      // Извлекаем числовой ID из формата "@id_XXXXXXX"
+      username = profile?.username || 'Неизвестный';
+      // Извлекаем числовой ID из формата "@id_XXXXXXX" или просто числа
       if (telegramId.startsWith('@id_')) {
         telegramIdNumeric = parseInt(telegramId.replace('@id_', ''), 10) || 0;
+      } else if (/^\d+$/.test(telegramId)) {
+        telegramIdNumeric = parseInt(telegramId, 10) || 0;
       }
     } catch (e) {
-      console.warn('[create-payment] Could not fetch telegram_id:', e);
+      console.warn('[create-payment] Could not fetch profile:', e);
     }
 
     console.log("[create-payment] Creating payment", {
@@ -93,6 +109,7 @@ serve(async (req) => {
       profileId,
       telegramId,
       telegramIdNumeric,
+      username,
       currency,
       paymentMethod,
       paymentMethodId,
@@ -158,6 +175,35 @@ serve(async (req) => {
     // Platega возвращает transactionId (не id)
     const transactionId = data.transactionId || data.id;
     console.log("[create-payment] Success! transactionId:", transactionId, "redirect:", data.redirect);
+
+    // Отправляем уведомление о новой заявке на оплату в бот
+    if (ADMIN_BOT_TOKEN && ADMIN_CHAT_ID) {
+      const methodLabel = METHOD_LABELS[paymentMethodId] || paymentMethodId;
+      const adminMsg =
+        `🆕 НОВАЯ ЗАЯВКА НА ОПЛАТУ (Platega)\n\n` +
+        `👤 Пользователь: ${username}\n` +
+        `📱 Telegram ID: ${telegramId || 'нет'}\n` +
+        `📦 Товар: ${productName}\n` +
+        `💳 Метод: ${methodLabel}\n` +
+        `💰 Сумма: ${amount} ${currency}\n\n` +
+        `🔗 ID транзакции: ${transactionId}\n` +
+        `⏳ Статус: PENDING (ожидает оплаты)`;
+
+      const adminIds = ADMIN_CHAT_ID.split(',').map((id: string) => id.trim()).filter(Boolean);
+      for (const adminId of adminIds) {
+        try {
+          const tgRes = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: adminId, text: adminMsg }),
+          });
+          const tgData = await tgRes.json();
+          console.log('[create-payment] Admin notification sent to', adminId, ':', tgData.ok, tgData.description || '');
+        } catch (e) {
+          console.error('[create-payment] Failed to send admin notification:', e);
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ redirect: data.redirect, transactionId }), {
       status: 200,

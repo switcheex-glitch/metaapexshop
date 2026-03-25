@@ -180,6 +180,38 @@ serve(async (req) => {
     const telegramId = profile?.telegram_id || '';
     const now = new Date();
 
+    // Извлекаем числовой Telegram ID из разных форматов:
+    // "@id_1234567" → 1234567
+    // "1234567" → 1234567
+    // "@username" → 0 (не числовой)
+    let telegramUserId = 0;
+    if (telegramId.startsWith('@id_')) {
+      telegramUserId = parseInt(telegramId.replace('@id_', ''), 10) || 0;
+    } else if (/^\d+$/.test(telegramId)) {
+      telegramUserId = parseInt(telegramId, 10) || 0;
+    }
+
+    // Если числовой ID не найден в профиле — пробуем взять из auth.users metadata
+    if (!telegramUserId && profileId) {
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(profileId);
+        const meta = authUser?.user?.user_metadata || {};
+        const rawTgId = meta.telegram_id || meta.telegramId || '';
+        if (rawTgId) {
+          if (String(rawTgId).startsWith('@id_')) {
+            telegramUserId = parseInt(String(rawTgId).replace('@id_', ''), 10) || 0;
+          } else if (/^\d+$/.test(String(rawTgId))) {
+            telegramUserId = parseInt(String(rawTgId), 10) || 0;
+          }
+        }
+        console.log('[platega-webhook] Auth user meta telegram_id:', rawTgId, '→', telegramUserId);
+      } catch (e) {
+        console.warn('[platega-webhook] Could not fetch auth user meta:', e);
+      }
+    }
+
+    console.log('[platega-webhook] Resolved telegramUserId:', telegramUserId, 'from telegramId:', telegramId);
+
     if (isJarvisIndustries) {
       if (!tier || !tierName) {
         console.error('[platega-webhook] Missing tier data for Jarvis Industries:', parsedPayload);
@@ -264,11 +296,10 @@ serve(async (req) => {
       }
 
       let sentToUser = false;
-      if (telegramId.startsWith('@id_')) {
-        const telegramUserId = parseInt(telegramId.replace('@id_', ''), 10);
-        if (!Number.isNaN(telegramUserId)) {
-          sentToUser = await sendTokenToUser(telegramUserId, tier, tierName, token, tokensCount, accessEnd);
-        }
+      if (telegramUserId > 0) {
+        sentToUser = await sendTokenToUser(telegramUserId, tier, tierName, token, tokensCount, accessEnd);
+      } else {
+        console.warn('[platega-webhook] Cannot send token to user: no numeric telegram ID. telegramId:', telegramId);
       }
 
       let inviteSummary = 'не выполнено';
