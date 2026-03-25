@@ -326,10 +326,15 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
           },
           body: fd,
         });
-        const fnData = await fnRes.json();
-        console.log('[JI] send-notification result:', fnData);
+        const fnText = await fnRes.text();
+        console.log('[JI] send-notification status:', fnRes.status, 'response:', fnText);
+        if (!fnRes.ok) {
+          console.error('[JI] send-notification FAILED:', fnRes.status, fnText);
+          toast.error('Ошибка отправки уведомления: ' + fnText.substring(0, 100));
+        }
       } catch (e) {
-        console.warn('[JI] send-notification failed:', e);
+        console.error('[JI] send-notification exception:', e);
+        toast.error('Ошибка соединения при отправке уведомления');
       }
 
       setStep('success');

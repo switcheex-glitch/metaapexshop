@@ -27,7 +27,6 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Читаем multipart form data
     const formData = await req.formData();
     const purchaseId = formData.get('purchase_id') as string;
     const isJI = formData.get('is_ji') === 'true';
@@ -58,7 +57,25 @@ serve(async (req) => {
 
     console.log('[send-notification] Purchase loaded:', purchase.id, purchase.status);
 
+    // Получаем данные профиля (username, telegram_id)
+    let username = purchase.username || 'неизвестно';
+    let telegramId = purchase.telegram_id || 'нет';
+
+    if (purchase.profile_id && (username === 'неизвестно' || telegramId === 'нет')) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, telegram_id')
+        .eq('id', purchase.profile_id)
+        .maybeSingle();
+      if (profile) {
+        username = profile.username || username;
+        telegramId = profile.telegram_id || telegramId;
+      }
+      console.log('[send-notification] Profile loaded:', { username, telegramId });
+    }
+
     const adminIds = ADMIN_CHAT_ID.split(',').map((id: string) => id.trim()).filter(Boolean);
+    console.log('[send-notification] Sending to admin IDs:', adminIds);
     const results = [];
 
     for (const chatId of adminIds) {
@@ -66,8 +83,8 @@ serve(async (req) => {
       if (isJI) {
         caption =
           `🧾 НОВАЯ ЗАЯВКА — JARVIS INDUSTRIES\n\n` +
-          `👤 Пользователь: ${purchase.username || 'неизвестно'}\n` +
-          `📱 Telegram ID: ${purchase.telegram_id || 'нет'}\n` +
+          `👤 Пользователь: ${username}\n` +
+          `📱 Telegram ID: ${telegramId}\n` +
           `📦 Тариф: ${purchase.tier_name}\n` +
           `⚡ Токены: ${(purchase.tokens || 0).toLocaleString('ru-RU')}\n` +
           `💰 Клиент платит: ${(purchase.price || 0).toLocaleString('ru-RU')} руб\n` +
@@ -77,8 +94,8 @@ serve(async (req) => {
       } else {
         caption =
           `🧾 НОВАЯ ЗАЯВКА НА ОПЛАТУ\n\n` +
-          `👤 Пользователь: ${purchase.username || 'неизвестно'}\n` +
-          `📱 Telegram ID: ${purchase.telegram_id || 'нет'}\n` +
+          `👤 Пользователь: ${username}\n` +
+          `📱 Telegram ID: ${telegramId}\n` +
           `📦 Товар: ${purchase.product_name}\n` +
           `💳 Метод: ${purchase.payment_method || 'не указан'}\n` +
           `🕐 Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
@@ -98,41 +115,52 @@ serve(async (req) => {
         ],
       });
 
-      let tgResult;
+      let tgResult: any;
 
       if (photo && photo.size > 0) {
-        // Отправляем с фото
         const fd = new FormData();
         fd.append('chat_id', chatId);
         fd.append('photo', photo, photo.name || 'screenshot.jpg');
         fd.append('caption', caption);
         fd.append('reply_markup', replyMarkup);
 
-        console.log('[send-notification] Sending photo to chat:', chatId, 'size:', photo.size);
+        console.log('[send-notification] Sending photo to chat:', chatId, 'photo size:', photo.size);
 
         const tgRes = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendPhoto`, {
           method: 'POST',
           body: fd,
         });
-        tgResult = await tgRes.json();
+        const tgResText = await tgRes.text();
+        console.log('[send-notification] sendPhoto response for', chatId, ':', tgResText);
+        try { tgResult = JSON.parse(tgResText); } catch { tgResult = { ok: false, description: tgResText }; }
       } else {
-        // Отправляем текстом
         console.log('[send-notification] Sending text to chat:', chatId);
 
         const tgRes = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: caption,
-            reply_markup: replyMarkup,
-          }),
+          body: JSON.stringify({ chat_id: chatId, text: caption, reply_markup: replyMarkup }),
         });
-        tgResult = await tgRes.json();
+        const tgResText = await tgRes.text();
+        console.log('[send-notification] sendMessage response for', chatId, ':', tgResText);
+        try { tgResult = JSON.parse(tgResText); } catch { tgResult = { ok: false, description: tgResText }; }
       }
 
-      console.log('[send-notification] Telegram result for', chatId, ':', tgResult.ok, tgResult.description || tgResult.error_code || '');
-      results.push({ chatId, ok: tgResult.ok, description: tgResult.description });
+      console.log('[send-notification] Telegram result for', chatId, ':', tgResult?.ok, tgResult?.description || '');
+      results.push({ chatId, ok: tgResult?.ok, description: tgResult?.description });
+
+      // Сохраняем message_id
+      if (tgResult?.ok && tgResult?.result?.message_id) {
+        await supabase.from(tableName).update({ telegram_message_id: tgResult.result.message_id }).eq('id', purchaseId);
+      }
+    }
+
+    const allFailed = results.every(r => !r.ok);
+    if (allFailed) {
+      console.error('[send-notification] All Telegram sends failed:', results);
+      return new Response(JSON.stringify({ error: 'Telegram send failed', results }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(JSON.stringify({ success: true, results }), {

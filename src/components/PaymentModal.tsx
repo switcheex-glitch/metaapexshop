@@ -185,10 +185,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
           },
           body: fd,
         });
-        const fnData = await fnRes.json();
-        console.log('[PM] send-notification result:', fnData);
+        const fnText = await fnRes.text();
+        console.log('[PM] send-notification status:', fnRes.status, 'response:', fnText);
+        if (!fnRes.ok) {
+          console.error('[PM] send-notification FAILED:', fnRes.status, fnText);
+          toast.error('Ошибка отправки уведомления: ' + fnText.substring(0, 100));
+        }
       } catch (e) {
-        console.warn('[PM] send-notification failed:', e);
+        console.error('[PM] send-notification exception:', e);
+        toast.error('Ошибка соединения при отправке уведомления');
       }
 
       setStatus('success');
