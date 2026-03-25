@@ -251,9 +251,44 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     navigate('/profile');
   };
 
-  const handleCheckStatus = () => {
-    // Просто переходим в профиль — там пользователь увидит статус покупки
-    goToProfile();
+  const handleCheckStatus = async () => {
+    if (!transactionId || !profile) { goToProfile(); return; }
+
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const isJI = productId?.startsWith('jarvis_industries_');
+      const res = await fetch(`${SUPABASE_FN}/check-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+        },
+        body: JSON.stringify({
+          transactionId,
+          profileId: profile.id,
+          productName,
+          productId: productId || productName.toLowerCase().replace(/\s+/g, '_'),
+          price: productPrice || 0,
+          isJarvisIndustries: !!isJI,
+        }),
+      });
+      const data = await res.json();
+      console.log('[PM] check-payment result:', data);
+      if (data.status === 'CONFIRMED') {
+        setStatus('success');
+        setTimeout(() => { onClose(); navigate('/profile'); }, 3000);
+      } else {
+        goToProfile();
+      }
+    } catch (e) {
+      console.error('[PM] check-payment error:', e);
+      goToProfile();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -436,12 +471,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                     </div>
                   </div>
                   {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
-                  <Button onClick={handleCheckStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
-                    <span className="flex items-center gap-2">
-                      <CheckCircle size={18} />
-                      Я оплатил — перейти в профиль
-                      <ArrowRight size={16} />
-                    </span>
+                  <Button onClick={handleCheckStatus} disabled={isLoading} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all disabled:opacity-60">
+                    {isLoading
+                      ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Проверяем оплату...</span>
+                      : <span className="flex items-center gap-2"><CheckCircle size={18} /> Я оплатил — проверить статус <ArrowRight size={16} /></span>
+                    }
                   </Button>
                   <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
                     Открыть страницу оплаты снова

@@ -116,6 +116,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -162,8 +163,52 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     navigate('/profile');
   };
 
-  const handleCheckStatus = () => {
-    goToProfile();
+  const handleCheckStatus = async () => {
+    if (!transactionId || !profile || !selectedTier) {
+      goToProfile();
+      return;
+    }
+
+    setIsCheckingStatus(true);
+    setErrorMsg('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_FN}/check-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+        },
+        body: JSON.stringify({
+          transactionId,
+          profileId: profile.id,
+          productName: selectedTier.fullName,
+          productId: `jarvis_industries_${selectedTier.id}`,
+          price: selectedTier.price,
+          isJarvisIndustries: true,
+          tier: selectedTier.id,
+          tierName: selectedTier.fullName,
+          tokens: selectedTier.tokens,
+        }),
+      });
+      const data = await res.json();
+      console.log('[JI] check-payment result:', data);
+
+      if (data.status === 'CONFIRMED') {
+        setStep('success');
+        setTimeout(() => goToProfile(), 3000);
+      } else {
+        // Платёж ещё не подтверждён — просто идём в профиль
+        goToProfile();
+      }
+    } catch (e) {
+      console.error('[JI] check-payment error:', e);
+      goToProfile();
+    } finally {
+      setIsCheckingStatus(false);
+    }
   };
 
   const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
@@ -556,7 +601,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                 <div className="flex items-start gap-3 bg-white/3 rounded-xl p-3 border border-white/5">
                   <User size={14} className="text-zinc-500 flex-shrink-0 mt-0.5" />
                   <p className="text-zinc-500 text-xs leading-relaxed">
-                    После оплаты перейдите в <span className="text-white font-bold">профиль</span>. Как только Platega подтвердит платёж, у вас автоматически появится доступ к <span className="text-white font-bold">{selectedTier.name}</span>.
+                    После оплаты нажмите кнопку ниже — мы проверим статус и активируем доступ к <span className="text-white font-bold">{selectedTier.name}</span> автоматически.
                   </p>
                 </div>
                 {transactionId && (
@@ -569,12 +614,11 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
               {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
 
-              <Button onClick={handleCheckStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all">
-                <span className="flex items-center gap-2">
-                  <CheckCircle size={18} />
-                  Я оплатил — перейти в профиль
-                  <ArrowRight size={16} />
-                </span>
+              <Button onClick={handleCheckStatus} disabled={isCheckingStatus} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all disabled:opacity-60">
+                {isCheckingStatus
+                  ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Проверяем оплату...</span>
+                  : <span className="flex items-center gap-2"><CheckCircle size={18} /> Я оплатил — проверить статус <ArrowRight size={16} /></span>
+                }
               </Button>
 
               <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
