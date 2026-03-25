@@ -133,39 +133,50 @@ const Profile = () => {
   const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean) => {
     setInvitingId(purchaseId);
     setInviteErrors(prev => { const n = {...prev}; delete n[purchaseId]; return n; });
+
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let accessToken = ANON_KEY;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) accessToken = session.access_token;
+      } catch (_) { /* используем anon key */ }
+
+      console.log('[handleGetProduct] calling invite-to-group, purchaseId:', purchaseId, 'isJI:', isJarvisIndustries);
+
       const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || ''}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': ANON_KEY,
         },
         body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
       });
 
+      const text = await res.text();
+      console.log('[handleGetProduct] status:', res.status, 'body:', text);
+
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(text); } catch (_) { data = { error: text }; }
+
       if (!res.ok) {
-        const text = await res.text();
-        console.error('[handleGetProduct] HTTP error:', res.status, text);
-        setInviteErrors(prev => ({ ...prev, [purchaseId]: `Ошибка сервера (${res.status}). Попробуйте позже.` }));
+        setInviteErrors(prev => ({ ...prev, [purchaseId]: (data.error as string) || `Ошибка сервера (${res.status})` }));
         setInvitingId(null);
         return;
       }
 
-      const data = await res.json();
-      console.log('[handleGetProduct] result:', data);
-
       if (data.invite_link) {
-        setInviteLinks(prev => ({ ...prev, [purchaseId]: data.invite_link }));
-        window.open(data.invite_link, '_blank');
+        setInviteLinks(prev => ({ ...prev, [purchaseId]: data.invite_link as string }));
+        window.open(data.invite_link as string, '_blank');
       } else if (data.success && data.added_directly) {
         await loadPurchases();
       } else if (data.error) {
-        setInviteErrors(prev => ({ ...prev, [purchaseId]: data.error }));
+        setInviteErrors(prev => ({ ...prev, [purchaseId]: data.error as string }));
       }
     } catch (e) {
-      console.error('[handleGetProduct] error:', e);
+      console.error('[handleGetProduct] fetch exception:', e);
       setInviteErrors(prev => ({ ...prev, [purchaseId]: 'Ошибка соединения. Попробуйте ещё раз.' }));
     }
     setInvitingId(null);

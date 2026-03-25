@@ -78,7 +78,7 @@ serve(async (req) => {
     if (isJarvisIndustries) {
       const { data: jiPurchase, error: jiError } = await supabase
         .from('jarvis_industries_purchases')
-        .select('*, profiles(telegram_id, username)')
+        .select('*')
         .eq('id', purchaseId)
         .single();
 
@@ -89,8 +89,17 @@ serve(async (req) => {
         });
       }
 
-      const profile = jiPurchase.profiles as { telegram_id: string } | null;
-      telegramIdStr = profile?.telegram_id || jiPurchase.telegram_id || '';
+      // Получаем telegram_id из profiles отдельным запросом
+      telegramIdStr = jiPurchase.telegram_id || '';
+      if (!telegramIdStr && jiPurchase.profile_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('telegram_id')
+          .eq('id', jiPurchase.profile_id)
+          .maybeSingle();
+        telegramIdStr = profile?.telegram_id || '';
+      }
+
       productKey = `jarvis_industries_${jiPurchase.tier}`;
 
       if (!PRODUCT_GROUPS[productKey]) {
@@ -104,6 +113,8 @@ serve(async (req) => {
       let telegramUserId: number | null = null;
       if (telegramIdStr.startsWith('@id_')) {
         telegramUserId = parseInt(telegramIdStr.replace('@id_', ''), 10);
+      } else if (/^\d+$/.test(telegramIdStr)) {
+        telegramUserId = parseInt(telegramIdStr, 10);
       }
 
       console.log("[invite-to-group] JI Group:", group.name, group.chatId, "| User ID:", telegramUserId);
@@ -175,7 +186,7 @@ serve(async (req) => {
       // Обычная покупка — старая логика
       const { data: purchase, error: purchaseError } = await supabase
         .from('purchases')
-        .select('*, profiles(telegram_id, username)')
+        .select('*')
         .eq('id', purchaseId)
         .single();
 
@@ -186,17 +197,22 @@ serve(async (req) => {
         });
       }
 
-      const profile = purchase.profiles as { telegram_id: string; username: string } | null;
-      if (!profile) {
-        return new Response(JSON.stringify({ error: 'Profile not found' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      // Получаем telegram_id из profiles отдельным запросом
+      let telegramIdStr = '';
+      if (purchase.profile_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('telegram_id, username')
+          .eq('id', purchase.profile_id)
+          .maybeSingle();
+        telegramIdStr = profile?.telegram_id || '';
       }
 
-      telegramIdStr = profile.telegram_id;
       let telegramUserId: number | null = null;
       if (telegramIdStr.startsWith('@id_')) {
         telegramUserId = parseInt(telegramIdStr.replace('@id_', ''), 10);
+      } else if (/^\d+$/.test(telegramIdStr)) {
+        telegramUserId = parseInt(telegramIdStr, 10);
       }
 
       const resolvedKey = resolveProductKey(purchase.product_id, purchase.product_name);
