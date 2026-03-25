@@ -91,6 +91,8 @@ const AdminJarvis: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [runningCheck, setRunningCheck] = useState(false);
   const [checkResult, setCheckResult] = useState<string | null>(null);
+  const [settingWebhook, setSettingWebhook] = useState(false);
+  const [webhookResult, setWebhookResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'tokens'>('subscriptions');
   const [tokens, setTokens] = useState<AppToken[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -197,6 +199,29 @@ const AdminJarvis: React.FC = () => {
       setPasswordError('Ошибка соединения');
     }
     setLoginLoading(false);
+  };
+
+  const handleSetupWebhook = async () => {
+    setSettingWebhook(true);
+    setWebhookResult(null);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/setup-webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWebhookResult(`✅ Webhook установлен! URL: ${data.webhookInfo?.result?.url || 'ok'}`);
+      } else {
+        setWebhookResult(`❌ Ошибка: ${JSON.stringify(data.result)}`);
+      }
+    } catch (e) {
+      setWebhookResult('❌ Ошибка соединения');
+    }
+    setSettingWebhook(false);
   };
 
   const handleRunCheck = async () => {
@@ -316,6 +341,15 @@ const AdminJarvis: React.FC = () => {
               <RefreshCw size={16} className={loading ? 'animate-spin text-white' : 'text-zinc-400'} />
             </button>
             <button
+              onClick={handleSetupWebhook}
+              disabled={settingWebhook}
+              title="Установить webhook бота (нужно для кнопок Одобрить/Отклонить)"
+              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 border border-white/10 text-white font-black text-xs uppercase rounded-xl hover:bg-zinc-700 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {settingWebhook ? <RefreshCw size={14} className="animate-spin" /> : <Key size={14} />}
+              Webhook бота
+            </button>
+            <button
               onClick={handleRunCheck}
               disabled={runningCheck}
               className="flex items-center gap-2 px-4 py-2.5 bg-white text-black font-black text-xs uppercase rounded-xl hover:bg-zinc-200 transition-all active:scale-95 disabled:opacity-50"
@@ -331,6 +365,13 @@ const AdminJarvis: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Webhook result */}
+        {webhookResult && (
+          <div className={`border rounded-2xl px-4 py-3 text-sm ${webhookResult.startsWith('✅') ? 'bg-green-950/30 border-green-500/20 text-green-300' : 'bg-red-950/30 border-red-500/20 text-red-300'}`}>
+            {webhookResult}
+          </div>
+        )}
 
         {/* Check result */}
         {checkResult && (

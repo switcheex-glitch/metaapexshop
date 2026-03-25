@@ -133,7 +133,7 @@ serve(async (req) => {
     // Загружаем заявку
     const { data: purchase, error } = await supabase
       .from(tableName)
-      .select('*, profiles(username, telegram_id)')
+      .select('*')
       .eq('id', purchaseId)
       .single();
 
@@ -148,9 +148,24 @@ serve(async (req) => {
       return new Response('ok', { status: 200, headers: corsHeaders });
     }
 
+    // Получаем данные профиля отдельным запросом
+    let userName = purchase.username || 'Пользователь';
+    let userTelegramId = purchase.telegram_id || '';
+    if (purchase.profile_id && (!userName || userName === 'Пользователь' || !userTelegramId)) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, telegram_id')
+        .eq('id', purchase.profile_id)
+        .maybeSingle();
+      if (profile) {
+        userName = profile.username || userName;
+        userTelegramId = profile.telegram_id || userTelegramId;
+      }
+    }
+
+    console.log('[telegram-webhook] Purchase:', purchaseId, 'user:', userName, 'tgId:', userTelegramId);
+
     const profile = purchase.profiles as { username: string; telegram_id: string } | null;
-    const userName = profile?.username || purchase.username || 'Пользователь';
-    const userTelegramId = profile?.telegram_id || purchase.telegram_id || '';
     const productDisplayName = isJI
       ? `${purchase.tier_name} (${purchase.tokens?.toLocaleString('ru-RU')} токенов)`
       : purchase.product_name;
@@ -220,10 +235,17 @@ serve(async (req) => {
           });
 
           let sentToUser = false;
-          if (userTelegramId.startsWith('@id_')) {
-            const userId = parseInt(userTelegramId.replace('@id_', ''), 10);
-            if (!isNaN(userId)) {
+          if (userTelegramId) {
+            let userId = 0;
+            if (userTelegramId.startsWith('@id_')) {
+              userId = parseInt(userTelegramId.replace('@id_', ''), 10) || 0;
+            } else if (/^\d+$/.test(userTelegramId)) {
+              userId = parseInt(userTelegramId, 10) || 0;
+            }
+            if (userId > 0) {
               sentToUser = await sendTokenToUser(userId, purchase.tier, purchase.tier_name, token, tokensCount, accessEnd);
+            } else {
+              console.warn('[telegram-webhook] Cannot send token: no numeric tg ID:', userTelegramId);
             }
           }
 
