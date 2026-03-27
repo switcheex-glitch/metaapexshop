@@ -82,7 +82,7 @@ const products = [
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { isActive: isSaleActive, countdown, percent, getDiscountedPrice } = useSale();
+  const { isActive: isSaleActive, showBanner, isUpcoming, countdown, percent, getDiscountedPrice } = useSale();
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -105,9 +105,7 @@ const Index = () => {
 
   const currentProduct = products.find(p => p.name === selectedProduct) || null;
   const currentProductPrice = currentProduct
-    ? (isSaleActive
-        ? getDiscountedPrice(parseInt(currentProduct.price) || 0)
-        : parseInt(currentProduct.price) || 0)
+    ? getDiscountedPrice(parseInt(currentProduct.price) || 0)
     : 0;
 
   return (
@@ -151,34 +149,60 @@ const Index = () => {
         <main className="flex-1 overflow-y-auto px-3 sm:px-12 pb-3 sm:pb-12">
 
           {/* 🎀 Sale Banner */}
-          {isSaleActive && (
-            <div className="mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl border border-rose-500/20 bg-gradient-to-r from-rose-950/60 via-pink-950/40 to-rose-950/60">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvc3ZnPg==')] opacity-50" />
+          {showBanner && (
+            <div className={`mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl border ${isSaleActive ? 'border-rose-500/30 bg-gradient-to-r from-rose-950/70 via-pink-950/50 to-rose-950/70' : 'border-orange-500/20 bg-gradient-to-r from-orange-950/50 via-amber-950/30 to-orange-950/50'}`}>
+              {/* Animated shimmer */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className={`absolute inset-0 ${isSaleActive ? 'bg-rose-500/5' : 'bg-orange-500/5'} animate-pulse`} />
+              </div>
+
               <div className="relative px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-500/20 rounded-2xl flex items-center justify-center flex-shrink-0 border border-rose-500/20">
-                  <Gift size={20} className="text-rose-400" />
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border ${isSaleActive ? 'bg-rose-500/20 border-rose-500/30' : 'bg-orange-500/20 border-orange-500/30'}`}>
+                  <Gift size={20} className={isSaleActive ? 'text-rose-400' : 'text-orange-400'} />
                 </div>
+
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
-                      🎉 30 000 человек — скидка {percent}%
-                    </p>
-                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20">
-                      на всё
-                    </span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
-                    В честь 30к участников в нашей группе!
-                  </p>
+                  {isSaleActive ? (
+                    <>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
+                          🔥 Скидка {percent}% на всё!
+                        </p>
+                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20 animate-pulse">
+                          АКТИВНА
+                        </span>
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
+                        27 марта 12:50 — 28 марта 12:50 МСК
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
+                          ⏳ Скидка {percent}% — скоро!
+                        </p>
+                        <span className="text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full font-bold border border-orange-500/20">
+                          27–28 марта
+                        </span>
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-orange-300/60 mt-0.5">
+                        Начнётся 27 марта в 12:50 МСК
+                      </p>
+                    </>
+                  )}
                 </div>
+
                 <div className="flex-shrink-0 text-right">
-                  <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
-                    <Clock size={12} className="text-rose-400" />
+                  <div className={`flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2`}>
+                    <Clock size={12} className={isSaleActive ? 'text-rose-400' : 'text-orange-400'} />
                     <span className="font-mono text-sm sm:text-lg font-black text-white tracking-wider">
                       {countdown}
                     </span>
                   </div>
-                  <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-0.5 uppercase tracking-widest">до конца</p>
+                  <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-0.5 uppercase tracking-widest">
+                    {isSaleActive ? 'до конца' : 'до начала'}
+                  </p>
                 </div>
               </div>
             </div>

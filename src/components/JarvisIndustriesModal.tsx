@@ -6,6 +6,7 @@ import { X, CheckCircle, Loader2, Upload, ImageIcon, Copy, ExternalLink, ArrowRi
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
+import { useSale } from "@/hooks/use-sale";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
@@ -103,6 +104,7 @@ type Step = 'privacy' | 'info' | 'tier' | 'payment' | 'pending' | 'requisites' |
 const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, onClose }) => {
   const { profile } = useAuth();
   const { convertPrice, getSymbol, convertTo } = useCurrency();
+  const { isActive: isSaleActive, percent: salePercent, getDiscountedPrice } = useSale();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -186,7 +188,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
           profileId: profile.id,
           productName: selectedTier.fullName,
           productId: `jarvis_industries_${selectedTier.id}`,
-          price: selectedTier.price,
+          price: getTierDisplayPrice(selectedTier),
           isJarvisIndustries: true,
           tier: selectedTier.id,
           tierName: selectedTier.fullName,
@@ -214,12 +216,17 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
   const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
 
+  // Цена с учётом скидки
+  const getTierDisplayPrice = (tier: typeof TIERS[0]) =>
+    isSaleActive ? getDiscountedPrice(tier.price) : tier.price;
+
   const getPriceForMethod = (currency: string, symbol: string): string => {
     if (!selectedTier) return '';
+    const displayPrice = getTierDisplayPrice(selectedTier);
     if (currency !== 'RUB') {
-      return `${convertTo(selectedTier.price, currency as any)} ${symbol}`;
+      return `${convertTo(displayPrice, currency as any)} ${symbol}`;
     }
-    return `${selectedTier.price.toLocaleString('ru-RU')} ₽`;
+    return `${displayPrice.toLocaleString('ru-RU')} ₽`;
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,7 +254,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
         },
         body: JSON.stringify({
-          amount: selectedTier.price,
+          amount: getTierDisplayPrice(selectedTier),
           productName: selectedTier.fullName,
           productId: `jarvis_industries_${selectedTier.id}`,
           profileId: profile.id,
@@ -296,7 +303,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
           tier: selectedTier.id,
           tier_name: selectedTier.fullName,
           tokens: selectedTier.tokens,
-          price: selectedTier.price,
+          price: getTierDisplayPrice(selectedTier),
           status: 'pending',
           payment_method: methodName,
           username: profile.username,
@@ -507,7 +514,15 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-lg font-black text-white">{tier.price.toLocaleString('ru-RU')} ₽</div>
+                      {isSaleActive && (
+                        <div className="text-xs text-zinc-500 line-through font-medium text-right">{tier.price.toLocaleString('ru-RU')} ₽</div>
+                      )}
+                      <div className={`text-lg font-black ${isSaleActive ? 'text-rose-400' : 'text-white'}`}>
+                        {getTierDisplayPrice(tier).toLocaleString('ru-RU')} ₽
+                      </div>
+                      {isSaleActive && (
+                        <div className="text-[9px] text-rose-400 font-bold">-{salePercent}%</div>
+                      )}
                       <ChevronRight size={16} className="text-zinc-600 ml-auto mt-1" />
                     </div>
                   </div>
@@ -533,7 +548,12 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                   <p className="text-xs text-zinc-400">{selectedTier.tokens.toLocaleString('ru-RU')} токенов</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-white text-lg">{selectedTier.price.toLocaleString('ru-RU')} ₽</p>
+                  {isSaleActive && (
+                    <div className="text-xs text-zinc-500 line-through">{selectedTier.price.toLocaleString('ru-RU')} ₽</div>
+                  )}
+                  <p className={`font-black text-lg ${isSaleActive ? 'text-rose-400' : 'text-white'}`}>
+                    {getTierDisplayPrice(selectedTier).toLocaleString('ru-RU')} ₽
+                  </p>
                 </div>
               </div>
 
@@ -548,7 +568,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                         <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
                         {method.badge && <span className="text-[10px] bg-white/10 text-zinc-400 px-2 py-0.5 rounded-full">{method.badge}</span>}
                       </div>
-                      <span className="text-sm font-mono text-zinc-500 pr-4">{selectedTier.price.toLocaleString('ru-RU')} ₽</span>
+                      <span className="text-sm font-mono text-zinc-500 pr-4">{getTierDisplayPrice(selectedTier).toLocaleString('ru-RU')} ₽</span>
                     </div>
                   ))}
                 </div>
@@ -593,7 +613,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                   disabled={!selectedMethod || isLoading}
                   className="flex-1 h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200 disabled:opacity-30 active:scale-95 transition-all"
                 >
-                  {isLoading ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Открываем оплату...</span> : `Оплатить ${selectedTier.price.toLocaleString('ru-RU')} ₽`}
+                  {isLoading ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Открываем оплату...</span> : `Оплатить ${getTierDisplayPrice(selectedTier).toLocaleString('ru-RU')} ₽`}
                 </Button>
               </div>
             </div>
