@@ -71,6 +71,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
             isComingSoon && "opacity-40 grayscale"
           )}
         />
+
+        {!isComingSoon && (
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+            <div className="rounded-full border border-amber-400/40 bg-amber-400 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-black shadow-lg shadow-amber-500/30 sm:px-4 sm:py-1.5 sm:text-xs">
+              Beta
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 p-4 sm:p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
           <h2 className="text-xl sm:text-3xl font-black tracking-tighter uppercase leading-none mb-1 sm:mb-2">{name}</h2>
           <p className="text-zinc-300 text-[11px] sm:text-xs font-medium max-w-[90%] leading-snug">
