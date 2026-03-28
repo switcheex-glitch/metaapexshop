@@ -83,9 +83,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {name === 'Jarvis Industries' && !isComingSoon && (
-          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10">
-            <div className="rounded-full border border-emerald-400/30 bg-emerald-400 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black shadow-lg shadow-emerald-500/30 sm:px-4 sm:py-1.5 sm:text-xs">
-              Подписка на 1 месяц
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+            <div className="rounded-full border border-emerald-400/30 bg-emerald-400 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-black shadow-lg shadow-emerald-500/30 sm:px-3 sm:py-1 sm:text-[10px]">
+              1 месяц
             </div>
           </div>
         )}
