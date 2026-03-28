@@ -314,7 +314,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
           <div className="mb-5">
             <div className="flex justify-between items-start">
               <DialogPrimitive.Title className="text-xl font-bold uppercase tracking-tight text-white">
-                {showPrivacy ? 'Политика конфиденциальности' : status === 'success' ? '✅ Заявка отправлена!' : status === 'screenshot' || status === 'sending' ? '📎 Скриншот оплаты' : showRequisites ? 'Реквизиты' : 'ОПЛАТА ЗАКАЗА'}
+                {showPrivacy ? 'Пользовательское соглашение' : status === 'success' ? '✅ Заявка отправлена!' : status === 'screenshot' || status === 'sending' ? '📎 Скриншот оплаты' : showRequisites ? 'Реквизиты' : 'ОПЛАТА ЗАКАЗА'}
               </DialogPrimitive.Title>
               <button onClick={handleClose} className="text-zinc-500 hover:text-white transition-colors flex-shrink-0 ml-4">
                 <X className="h-5 w-5" />
@@ -322,7 +322,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
             </div>
             <DialogPrimitive.Description className="text-zinc-500 text-xs text-left mt-1">
               {showPrivacy
-                ? 'Перед покупкой ознакомьтесь с информацией о конфиденциальности.'
+                ? 'Перед покупкой ознакомьтесь с пользовательским соглашением.'
                 : status === 'success'
                   ? 'Мы проверим оплату и активируем товар'
                   : `«${productName}» — ${priceInCurrency}`}
@@ -335,10 +335,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                 localStorage.setItem('vibe_privacy_policy_accepted', '1');
                 setPrivacyAccepted(true);
                 setShowPrivacy(false);
-                toast.success('Политика конфиденциальности принята');
+                toast.success('Пользовательское соглашение принято');
               }}
               onDecline={() => {
-                toast.error('Для покупки необходимо принять политику конфиденциальности');
+                toast.error('Для покупки необходимо принять пользовательское соглашение');
                 handleClose();
               }}
             />

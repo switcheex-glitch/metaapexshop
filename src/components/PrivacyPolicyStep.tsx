@@ -1,30 +1,14 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, ShieldCheck, XCircle } from "lucide-react";
+import { ChevronDown, FileText, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { USER_AGREEMENT_FULL_TEXT, USER_AGREEMENT_TITLE } from "@/content/user-agreement";
 
 interface PrivacyPolicyStepProps {
   onAccept: () => void;
   onDecline: () => void;
 }
-
-const POLICY_TEXT = `Перед покупкой программного обеспечения Jarvis просим ознакомиться с информацией о конфиденциальности.
-
-Мы уважаем приватность пользователей и не собираем личные данные. При покупке и использовании Jarvis нам не передаются и не хранятся ваши персональные данные, такие как имя, номер телефона, адрес электронной почты, местоположение или содержимое вашего устройства.
-
-Единственная информация, которая может быть получена автоматически — это ваш Telegram ID, если покупка или активация осуществляется через Telegram-бота. Этот идентификатор используется исключительно для:
- • подтверждения покупки
- • выдачи доступа к программе
- • технической поддержки пользователя
-
-Мы не имеем доступа к вашему компьютеру, файлам, перепискам, микрофону, камере или другим личным данным.
-
-Мы не продаём, не передаём и не распространяем какую-либо информацию о пользователях третьим лицам.
-
-Все взаимодействие с программой происходит локально на вашем устройстве, за исключением функций, которые могут использовать сторонние сервисы (например, запросы к искусственному интеллекту).
-
-Покупая Jarvis, вы подтверждаете, что ознакомились с данной политикой конфиденциальности и принимаете её условия.`;
 
 const PrivacyPolicyStep: React.FC<PrivacyPolicyStepProps> = ({ onAccept, onDecline }) => {
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -51,12 +35,12 @@ const PrivacyPolicyStep: React.FC<PrivacyPolicyStepProps> = ({ onAccept, onDecli
     <div className="space-y-4">
       <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-4 flex items-start gap-3">
         <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-          <ShieldCheck className="text-white" size={18} />
+          <FileText className="text-white" size={18} />
         </div>
         <div className="min-w-0">
           <p className="text-white font-black uppercase tracking-tight text-sm">Важно перед оплатой</p>
           <p className="text-zinc-500 text-xs leading-relaxed mt-1">
-            Мы не собираем личные данные — ознакомьтесь с политикой и подтвердите согласие.
+            Перед покупкой внимательно ознакомьтесь с пользовательским соглашением и подтвердите согласие.
           </p>
         </div>
       </div>
@@ -66,7 +50,7 @@ const PrivacyPolicyStep: React.FC<PrivacyPolicyStepProps> = ({ onAccept, onDecli
         onScroll={handleScroll}
         className="max-h-[44vh] overflow-y-auto rounded-2xl border border-white/5 bg-black/40 p-4"
       >
-        <p className="text-zinc-300 text-xs leading-relaxed whitespace-pre-line">{POLICY_TEXT}</p>
+        <p className="text-zinc-300 text-xs leading-relaxed whitespace-pre-line">{USER_AGREEMENT_FULL_TEXT}</p>
       </div>
 
       {!hasScrolled && (
@@ -99,7 +83,7 @@ const PrivacyPolicyStep: React.FC<PrivacyPolicyStepProps> = ({ onAccept, onDecli
           )}
         </div>
         <span className="text-xs text-zinc-400 leading-relaxed">
-          Я ознакомился(ась) и принимаю <span className="text-white font-bold">Политику конфиденциальности</span>
+          Я ознакомился(ась) и принимаю <span className="text-white font-bold">{USER_AGREEMENT_TITLE}</span>
         </span>
       </label>
 

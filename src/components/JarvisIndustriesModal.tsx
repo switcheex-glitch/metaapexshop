@@ -361,7 +361,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
   const getTitle = () => {
     switch (step) {
-      case 'privacy': return 'Политика конфиденциальности';
+      case 'privacy': return 'Пользовательское соглашение';
       case 'info': return 'Jarvis Industries';
       case 'tier': return 'Выберите тариф';
       case 'payment': return `Оплата — ${selectedTier?.name}`;
@@ -375,7 +375,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
   const getSubtitle = () => {
     switch (step) {
-      case 'privacy': return 'Перед покупкой ознакомьтесь с информацией о конфиденциальности.';
+      case 'privacy': return 'Перед покупкой ознакомьтесь с пользовательским соглашением.';
       case 'info': return 'Apex Technology — персональный цифровой дворецкий нового поколения';
       case 'tier': return 'Jarvis Industries — выберите подходящий тариф';
       case 'payment': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
@@ -414,10 +414,10 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
               onAccept={() => {
                 localStorage.setItem('vibe_privacy_policy_accepted', '1');
                 setStep('info');
-                toast.success('Политика конфиденциальности принята');
+                toast.success('Пользовательское соглашение принято');
               }}
               onDecline={() => {
-                toast.error('Для покупки необходимо принять политику конфиденциальности');
+                toast.error('Для покупки необходимо принять пользовательское соглашение');
                 handleClose();
               }}
             />
