@@ -228,6 +228,7 @@ const Index = () => {
                   image={product.image}
                   isComingSoon={product.isComingSoon}
                   isNew={(product as any).isNew}
+                  isBeta={product.id === 'jarvis-max'}
                   onPay={() => handlePay(product.name, product.id)}
                   onInfo={() => handleInfo(product.name)}
                   salePrice={discountedPrice}

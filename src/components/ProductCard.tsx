@@ -27,6 +27,7 @@ interface ProductCardProps {
   onPay: () => void;
   onInfo: () => void;
   salePrice?: number;
+  isBeta?: boolean;
 }
 
 const CURRENCIES = [
@@ -51,7 +52,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isNew,
   onPay,
   onInfo,
-  salePrice
+  salePrice,
+  isBeta
 }) => {
   const { convertPrice, getSymbol, setCurrency, currency, isLoadingRates, convertTo } = useCurrency();
   const { isActive: isSaleActive, percent: salePercent } = useSale();
@@ -72,7 +74,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         />
 
-        {!isComingSoon && (
+        {isBeta && !isComingSoon && (
           <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
             <div className="rounded-full border border-amber-400/40 bg-amber-400 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-black shadow-lg shadow-amber-500/30 sm:px-4 sm:py-1.5 sm:text-xs">
               Beta
