@@ -81,6 +81,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           </div>
         )}
+
+        {name === 'Jarvis Industries' && !isComingSoon && (
+          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10">
+            <div className="rounded-full border border-emerald-400/30 bg-emerald-400 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black shadow-lg shadow-emerald-500/30 sm:px-4 sm:py-1.5 sm:text-xs">
+              Подписка на 1 месяц
+            </div>
+          </div>
+        )}
+
         <div className="absolute inset-0 p-4 sm:p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
           <div className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300 sm:text-[11px]">
             <Monitor size={12} />
