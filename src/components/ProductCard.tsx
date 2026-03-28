@@ -4,7 +4,7 @@ import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Info, CreditCard, Loader2 } from "lucide-react";
+import { Info, CreditCard, Loader2, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSale } from "@/hooks/use-sale";
@@ -82,6 +82,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
         <div className="absolute inset-0 p-4 sm:p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+          <div className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300 sm:text-[11px]">
+            <Monitor size={12} />
+            Для Windows
+          </div>
           <h2 className="text-xl sm:text-3xl font-black tracking-tighter uppercase leading-none mb-1 sm:mb-2">{name}</h2>
           <p className="text-zinc-300 text-[11px] sm:text-xs font-medium max-w-[90%] leading-snug">
             {isComingSoon ? "Продукт скоро поступит в продажу." : description}
