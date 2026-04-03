@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 
-// Скидка 30% с 27.03.2026 12:50 по 28.03.2026 12:50 (МСК = UTC+3)
-const SALE_START = new Date('2026-03-27T09:50:00Z'); // 12:50 МСК = 09:50 UTC
-const SALE_END   = new Date('2026-03-28T09:50:00Z'); // 12:50 МСК = 09:50 UTC
+// Скидка 30% с 03.04.2026 18:50 по 04.04.2026 18:50 (МСК = UTC+3)
+const SALE_START = new Date('2026-04-03T15:50:00Z'); // 18:50 МСК = 15:50 UTC
+const SALE_END   = new Date('2026-04-04T15:50:00Z'); // 18:50 МСК = 15:50 UTC
 const SALE_PERCENT = 30;
 
 function isSaleNow(): boolean {

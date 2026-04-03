@@ -183,7 +183,7 @@ const Index = () => {
                         </span>
                       </div>
                       <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
-                        27 марта 12:50 — 28 марта 12:50 МСК
+                        3 апреля 18:50 — 4 апреля 18:50 МСК
                       </p>
                     </>
                   ) : (
@@ -193,11 +193,11 @@ const Index = () => {
                           ⏳ Скидка {percent}% — скоро!
                         </p>
                         <span className="text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full font-bold border border-orange-500/20">
-                          27–28 марта
+                          3–4 апреля
                         </span>
                       </div>
                       <p className="text-[10px] sm:text-xs text-orange-300/60 mt-0.5">
-                        Начнётся 27 марта в 12:50 МСК
+                        Начнётся 3 апреля в 18:50 МСК
                       </p>
                     </>
                   )}
