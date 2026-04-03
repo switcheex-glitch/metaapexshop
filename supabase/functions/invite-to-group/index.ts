@@ -10,6 +10,7 @@ const INVITE_BOT_TOKEN = Deno.env.get('INVITE_BOT_TOKEN')!;
 
 // Маппинг product_id → chat_id группы + бот токен
 const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: string }> = {
+  'jarvis_lite': { chatId: '-1002253987827', name: 'Jarvis Lite' },
   'jarvis_max':  { chatId: '-1002564995824', name: 'Jarvis Max' },
   'jarvis_pro':  { chatId: '-1002035910246', name: 'Jarvis Pro' },
   'friday_pro':  { chatId: '-1001816037231', name: 'Friday Pro' },
@@ -23,6 +24,7 @@ const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: 
 
 // Также маппинг по названию продукта (на случай если product_id не совпадает)
 const PRODUCT_NAME_MAP: Record<string, string> = {
+  'jarvis lite': 'jarvis_lite',
   'jarvis max':  'jarvis_max',
   'jarvis pro':  'jarvis_pro',
   'friday pro':  'friday_pro',

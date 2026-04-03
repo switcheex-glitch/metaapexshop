@@ -24,6 +24,16 @@ const products = [
     isNew: true
   },
   {
+    id: 'jarvis-lite',
+    name: 'Jarvis Lite',
+    description: 'Базовый голосовой помощник с подключением своего API-ключа от ИИ.',
+    fullInfo: 'Jarvis Lite — базовая версия голосового помощника.\n\nПодключите свой API-ключ от OpenAI, Google AI или другого провайдера и получите полноценный диалог с ИИ.\n\nОткрытие и закрытие приложений голосом, управление системой, быстрые команды — всё это доступно из коробки.\n\nИдеально для тех, кто хочет попробовать Jarvis без лишних затрат.',
+    price: '1500',
+    image: '/assets/jarvis-lite.jpg',
+    isComingSoon: false,
+    isNew: true
+  },
+  {
     id: 'jarvis-max',
     name: 'Jarvis Max',
     description: 'Голосовой помощник с встроенным искусственным интеллектом.',
