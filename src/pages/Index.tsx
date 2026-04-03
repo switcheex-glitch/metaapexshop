@@ -239,6 +239,7 @@ const Index = () => {
                   isComingSoon={product.isComingSoon}
                   isNew={(product as any).isNew}
                   isBeta={product.id === 'jarvis-max'}
+                  hasMacOS={product.id === 'jarvis-max'}
                   onPay={() => handlePay(product.name, product.id)}
                   onInfo={() => handleInfo(product.name)}
                   salePrice={discountedPrice}

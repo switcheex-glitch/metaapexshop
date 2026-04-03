@@ -28,6 +28,7 @@ interface ProductCardProps {
   onInfo: () => void;
   salePrice?: number;
   isBeta?: boolean;
+  hasMacOS?: boolean;
 }
 
 const CURRENCIES = [
@@ -53,7 +54,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onPay,
   onInfo,
   salePrice,
-  isBeta
+  isBeta,
+  hasMacOS
 }) => {
   const { convertPrice, getSymbol, setCurrency, currency, isLoadingRates, convertTo } = useCurrency();
   const { isActive: isSaleActive, percent: salePercent } = useSale();
@@ -91,9 +93,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         <div className="absolute inset-0 p-4 sm:p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-          <div className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300 sm:text-[11px]">
-            <Monitor size={12} />
-            Для Windows
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300 sm:text-[11px]">
+              <Monitor size={12} />
+              Windows
+            </div>
+            {hasMacOS && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/20 bg-purple-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-purple-300 sm:text-[11px]">
+                <Monitor size={12} />
+                macOS
+              </div>
+            )}
           </div>
           <h2 className="text-xl sm:text-3xl font-black tracking-tighter uppercase leading-none mb-1 sm:mb-2">{name}</h2>
           <p className="text-zinc-300 text-[11px] sm:text-xs font-medium max-w-[90%] leading-snug">
