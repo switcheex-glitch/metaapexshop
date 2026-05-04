@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, Newspaper, User, Gift, Clock } from "lucide-react";
+import { Headphones, Newspaper, User, Gift, Clock, ScrollText } from "lucide-react";
 import ProductCard from '@/components/ProductCard';
 import PaymentModal from '@/components/PaymentModal';
 import InfoModal from '@/components/InfoModal';
 import JarvisIndustriesModal from '@/components/JarvisIndustriesModal';
+import LegalDocsModal from '@/components/LegalDocsModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useSale } from '@/hooks/use-sale';
 
@@ -14,22 +15,23 @@ const JARVIS_INDUSTRIES_ID = 'jarvis-industries';
 
 const products = [
   {
+    id: 'metacore',
+    name: 'Metacore',
+    description: 'Десктопная IDE с командой AI-агентов: сайты, SaaS, боты и приложения от идеи до запуска за 2 минуты.',
+    fullInfo: 'Десктопное приложение, которое пишет код за тебя.\nНе плагин. Не браузерная игрушка. Полноценная IDE на твоём компьютере, которая умеет поднимать сайты, SaaS, telegram-боты и electron-приложения от идеи до запуска за 2 минуты.\n\n━━━━━━━━━━━━━━━━━━━━━\n\n🔥 Что умеет Metacore:\n\n🤖 Топовые AI-модели в одной подписке\nClaude Opus 4.7 · GPT-5 · Gemini 3 Pro · Kimi K2 · 10+ других. Без API-ключей, без счетов от Anthropic и OpenAI отдельно. Платишь один раз — пользуешься всем.\n\n⚡ Команда из 4 AI-агентов\nDesigner → Backend → Frontend → QA. Один промпт — на выходе готовый проект с дизайном, API, тестами и git-историей.\n\n🎨 Лайв-превью с hot reload\nПишешь промпт — за 5 секунд видишь результат прямо в окне Metacore. Без VS Code, без браузера, без переключений.\n\n🔌 Интеграции в один клик\nSupabase для бекенда, GitHub для версионирования, MCP-серверы для расширения. Всё подключается кнопкой, без yaml-конфигов.\n\n📚 Библиотека промптов\nСохраняешь свои наработки — копируешь одним кликом. «Сделай форму с Zod», «Добавь dark mode», «Напиши FastAPI-роут» — всё под рукой.\n\n🛒 Публичная галерея\nПокупаешь чужие проекты — через секунду они у тебя локально. Продаёшь свои — забираешь 70% с каждой продажи.\n\n💰 Встроенный кошелёк\nЗаработал на шаблонах? Запросил вывод USDT (TRC20 / ERC20) — получил.\n\n🔄 Авто-обновления без переустановки\nУстановил один раз — Metacore сам обновляется в фоне. Никаких ручных скачиваний.\n\n━━━━━━━━━━━━━━━━━━━━━\n\nПодписка: 1999 ₽ / месяц · 200 токенов в месяц.',
+    price: '1999',
+    image: '/assets/metacore.jpg',
+    isComingSoon: false,
+    isNew: true,
+    isMonthly: true
+  },
+  {
     id: JARVIS_INDUSTRIES_ID,
     name: 'Jarvis Industries',
     description: 'Профессиональная платформа с тремя тарифами MK-I, MK-II, MK-III.',
     fullInfo: 'Jarvis Industries — профессиональная платформа с тремя тарифами.\n\nMK-I: 10 000 токенов — базовый доступ.\nMK-II: 30 000 токенов — расширенный доступ.\nMK-III: 60 000 токенов — максимальный доступ.\n\nКаждый тариф открывает доступ в отдельную закрытую группу.',
     price: '1490',
     image: '/assets/jarvis-industries-mk3.jpg',
-    isComingSoon: false,
-    isNew: true
-  },
-  {
-    id: 'jarvis-lite',
-    name: 'Jarvis Lite',
-    description: 'Базовый голосовой помощник с подключением своего API-ключа от ИИ.',
-    fullInfo: 'Jarvis Lite — базовая версия голосового помощника.\n\nПодключите свой API-ключ от OpenAI, Google AI или другого провайдера и получите полноценный диалог с ИИ.\n\nОткрытие и закрытие приложений голосом, управление системой, быстрые команды — всё это доступно из коробки.\n\nИдеально для тех, кто хочет попробовать Jarvis без лишних затрат.',
-    price: '1500',
-    image: '/assets/jarvis-lite.jpg',
     isComingSoon: false,
     isNew: true
   },
@@ -51,42 +53,6 @@ const products = [
     image: '/assets/jarvis-pro.jpg',
     isComingSoon: false
   },
-  {
-    id: 'pc-control',
-    name: 'PcControl',
-    description: 'Полное управление компьютером через Telegram-бота.',
-    fullInfo: 'Полное управление компьютером через Telegram-бота из любой точки мира.\n\nЗапуск программ, контроль процессов, доступ к системе — дистанционно и безопасно.',
-    price: '1980',
-    image: '/assets/pc-control.jpg',
-    isComingSoon: false
-  },
-  {
-    id: 'friday-pro',
-    name: 'Friday Pro',
-    description: 'Тот же функционал, что и у Jarvis Pro, но с женским голосом.',
-    fullInfo: 'Тот же функционал, что и у Jarvis Pro, но с женским голосом.\n\nСтиль. Атмосфера. Характер.',
-    price: '2380',
-    image: '/assets/friday-pro.jpg',
-    isComingSoon: false
-  },
-  {
-    id: 'vibe-wall',
-    name: 'VibeWall',
-    description: 'Анимированные обои с интеграцией Jarvis.',
-    fullInfo: 'Анимированные обои с интеграцией Jarvis.\n\nЖивой рабочий стол, который реагирует и работает вместе с вами.\n\nПолная синхронизация с вашим ассистентом и динамические визуальные эффекты.',
-    price: '1200',
-    image: '/assets/vibewall.jpg',
-    isComingSoon: false
-  },
-  {
-    id: 'friday-next-gen',
-    name: 'FRIDAY',
-    description: 'Новое поколение искусственного интеллекта. Скоро в продаже.',
-    fullInfo: 'FRIDAY — это не просто помощник, это цифровая сущность.\n\nПолное погружение, улучшенная нейронная сеть и уникальный интерфейс взаимодействия.\n\nПродукт находится на стадии финального тестирования.',
-    price: '0₽',
-    image: '/assets/friday-max.jpg',
-    isComingSoon: true
-  }
 ];
 
 const Index = () => {
@@ -98,6 +64,7 @@ const Index = () => {
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isJarvisIndustriesOpen, setIsJarvisIndustriesOpen] = useState(false);
+  const [isLegalDocsOpen, setIsLegalDocsOpen] = useState(false);
 
   const handlePay = (productName: string, productId: string) => {
     if (productId === JARVIS_INDUSTRIES_ID) {
@@ -139,81 +106,110 @@ const Index = () => {
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Магазин</p>
             <p className="text-base sm:text-xl font-black tracking-tighter uppercase italic">Apex Technology</p>
           </div>
-          <button
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 active:scale-95 transition-transform bg-zinc-900 flex items-center justify-center"
-            onClick={() => profile ? navigate('/profile') : navigate('/login')}
-          >
-            {profile ? (
-              profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsLegalDocsOpen(true)}
+              className="h-9 sm:h-10 px-3 sm:px-3.5 rounded-full border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white hover:border-white/20 active:scale-95 transition-all flex items-center gap-1.5"
+              aria-label="Документы и соглашения"
+            >
+              <ScrollText size={14} />
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider">Документы</span>
+            </button>
+            <button
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 active:scale-95 transition-transform bg-zinc-900 flex items-center justify-center"
+              onClick={() => profile ? navigate('/profile') : navigate('/login')}
+            >
+              {profile ? (
+                profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white font-black text-sm uppercase">{profile.username.charAt(0)}</span>
+                )
               ) : (
-                <span className="text-white font-black text-sm uppercase">{profile.username.charAt(0)}</span>
-              )
-            ) : (
-              <User size={16} className="text-zinc-400" />
-            )}
-          </button>
+                <User size={16} className="text-zinc-400" />
+              )}
+            </button>
+          </div>
         </header>
 
         {/* Карточки */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-12 pb-3 sm:pb-12">
 
-          {/* 🎀 Sale Banner */}
+          {/* 🤝 APEX & METACORE Sale Banner */}
           {showBanner && (
-            <div className={`mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl border ${isSaleActive ? 'border-rose-500/30 bg-gradient-to-r from-rose-950/70 via-pink-950/50 to-rose-950/70' : 'border-orange-500/20 bg-gradient-to-r from-orange-950/50 via-amber-950/30 to-orange-950/50'}`}>
-              {/* Animated shimmer */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className={`absolute inset-0 ${isSaleActive ? 'bg-rose-500/5' : 'bg-orange-500/5'} animate-pulse`} />
+            <div className="mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl">
+              {/* Фоновый градиент */}
+              <div className={`absolute inset-0 ${isSaleActive ? 'bg-gradient-to-br from-rose-600 via-orange-500 to-yellow-500' : 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-800'}`} />
+              {/* Тёмный оверлей поверх для читаемости */}
+              <div className="absolute inset-0 bg-black/50" />
+              {/* Мерцающий glow по краям */}
+              {isSaleActive && (
+                <div className="absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-400 opacity-60 blur-sm animate-pulse" />
+              )}
+              {/* Шиммер */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
+                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
               </div>
 
-              <div className="relative px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 sm:gap-4">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border ${isSaleActive ? 'bg-rose-500/20 border-rose-500/30' : 'bg-orange-500/20 border-orange-500/30'}`}>
-                  <Gift size={20} className={isSaleActive ? 'text-rose-400' : 'text-orange-400'} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  {isSaleActive ? (
-                    <>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
-                          🔥 Скидка {percent}% на всё!
-                        </p>
-                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/20 animate-pulse">
-                          АКТИВНА
+              <div className="relative px-4 py-4 sm:px-6 sm:py-5">
+                {isSaleActive ? (
+                  <>
+                    {/* Верхняя строка: бейдж + таймер */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-white text-black text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-widest animate-pulse">
+                          🔥 АКТИВНА
+                        </span>
+                        <span className="text-white/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                          APEX &amp; METACORE
                         </span>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-rose-300/60 mt-0.5">
-                        3 апреля 18:50 — 4 апреля 18:50 МСК
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
-                          ⏳ Скидка {percent}% — скоро!
-                        </p>
-                        <span className="text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full font-bold border border-orange-500/20">
-                          3–4 апреля
+                      <div className="flex items-center gap-1.5 bg-black/50 border border-white/20 rounded-xl px-3 py-1.5">
+                        <Clock size={12} className="text-orange-300" />
+                        <span className="font-mono text-sm sm:text-base font-black text-white tabular-nums">
+                          {countdown}
                         </span>
+                        <span className="text-[9px] text-white/40 uppercase font-bold ml-0.5">до конца</span>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-orange-300/60 mt-0.5">
-                        Начнётся 3 апреля в 18:50 МСК
-                      </p>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex-shrink-0 text-right">
-                  <div className={`flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2`}>
-                    <Clock size={12} className={isSaleActive ? 'text-rose-400' : 'text-orange-400'} />
-                    <span className="font-mono text-sm sm:text-lg font-black text-white tracking-wider">
-                      {countdown}
-                    </span>
-                  </div>
-                  <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-0.5 uppercase tracking-widest">
-                    {isSaleActive ? 'до конца' : 'до начала'}
-                  </p>
-                </div>
+                    </div>
+                    {/* Большой текст */}
+                    <div className="flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-3xl sm:text-5xl font-black text-white uppercase leading-none tracking-tighter drop-shadow-[0_2px_12px_rgba(251,146,60,0.5)]">
+                          −{percent}%
+                        </p>
+                        <p className="text-white/80 text-sm sm:text-base font-black uppercase tracking-tight mt-1">
+                          на весь каталог
+                        </p>
+                        <p className="text-white/40 text-[10px] sm:text-xs mt-0.5">
+                          4 мая 09:47 — 6 мая 09:47 МСК · 48 часов
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-3xl sm:text-4xl">🤝</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="bg-white/10 border border-white/20 text-white/80 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                        ⏳ Скоро
+                      </span>
+                      <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5">
+                        <Clock size={12} className="text-zinc-400" />
+                        <span className="font-mono text-sm font-black text-white tabular-nums">{countdown}</span>
+                        <span className="text-[9px] text-white/30 uppercase font-bold ml-0.5">до начала</span>
+                      </div>
+                    </div>
+                    <p className="text-2xl sm:text-4xl font-black text-white uppercase leading-none tracking-tighter">
+                      −{percent}% на всё
+                    </p>
+                    <p className="text-white/50 text-xs sm:text-sm mt-1">
+                      APEX &amp; METACORE · 4 мая 09:47 МСК
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -239,7 +235,8 @@ const Index = () => {
                   isComingSoon={product.isComingSoon}
                   isNew={(product as any).isNew}
                   isBeta={product.id === 'jarvis-max'}
-                  hasMacOS={product.id === 'jarvis-max'}
+                  hasMacOS={product.id === 'jarvis-max' || product.id === 'metacore'}
+                  isMonthly={(product as any).isMonthly}
                   onPay={() => handlePay(product.name, product.id)}
                   onInfo={() => handleInfo(product.name)}
                   salePrice={discountedPrice}
@@ -286,6 +283,11 @@ const Index = () => {
       <JarvisIndustriesModal
         isOpen={isJarvisIndustriesOpen}
         onClose={() => setIsJarvisIndustriesOpen(false)}
+      />
+
+      <LegalDocsModal
+        isOpen={isLegalDocsOpen}
+        onClose={() => setIsLegalDocsOpen(false)}
       />
     </div>
   );

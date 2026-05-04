@@ -10,6 +10,7 @@ import { useSale } from "@/hooks/use-sale";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
+import PrivacyPolicyConsentStep from "@/components/PrivacyPolicyConsentStep";
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -79,7 +80,7 @@ const MANUAL_METHODS = [
   { id: 'abank',  name: 'АБанк',         icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'АБанк — Богдан Р.',       value: '4323347363236206' }] },
   { id: 'pumb',   name: 'Пумб',          icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'Пумб — Богдан Р.',        value: '5355280043078623' }] },
   { id: 'rb',     name: 'Оплата с РБ',   icon: <CreditCard className="w-4 h-4" />, country: '🇧🇾', currency: 'BYN', symbol: 'Br', rate: 0.035,infoUrl: 'https://telegra.ph/Oplata-s-belarus-10-31',  requisites: [{ label: 'Kaspi Visa — Фарида Л.', value: '4400 4303 0558 1131' }] },
-  { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in@mail.ru' }] },
+  { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in2000@mail.ru' }] },
 ];
 
 const METHOD_NAMES: Record<string, string> = {
@@ -99,7 +100,7 @@ interface JarvisIndustriesModalProps {
   onClose: () => void;
 }
 
-type Step = 'privacy' | 'info' | 'tier' | 'payment' | 'pending' | 'requisites' | 'screenshot' | 'sending' | 'success';
+type Step = 'privacy' | 'privacy-policy' | 'info' | 'tier' | 'payment' | 'pending' | 'requisites' | 'screenshot' | 'sending' | 'success';
 
 const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, onClose }) => {
   const { profile } = useAuth();
@@ -122,8 +123,9 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
   useEffect(() => {
     if (!isOpen) return;
-    const accepted = localStorage.getItem('vibe_privacy_policy_accepted') === '1';
-    setStep(accepted ? 'info' : 'privacy');
+    const agreementAccepted = localStorage.getItem('vibe_privacy_policy_accepted') === '1';
+    const policyAccepted = localStorage.getItem('vibe_privacy_policy_consent_accepted') === '1';
+    setStep(!agreementAccepted ? 'privacy' : !policyAccepted ? 'privacy-policy' : 'info');
     setSelectedTier(null);
     setSelectedMethod(null);
     setScreenshot(null);
@@ -362,6 +364,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const getTitle = () => {
     switch (step) {
       case 'privacy': return 'Пользовательское соглашение';
+      case 'privacy-policy': return 'Политика конфиденциальности';
       case 'info': return 'Jarvis Industries';
       case 'tier': return 'Выберите тариф';
       case 'payment': return `Оплата — ${selectedTier?.name}`;
@@ -376,6 +379,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
   const getSubtitle = () => {
     switch (step) {
       case 'privacy': return 'Перед покупкой ознакомьтесь с пользовательским соглашением.';
+      case 'privacy-policy': return 'Ознакомьтесь с политикой конфиденциальности и подтвердите согласие.';
       case 'info': return 'Apex Technology — персональный цифровой дворецкий нового поколения';
       case 'tier': return 'Jarvis Industries — выберите подходящий тариф';
       case 'payment': return `${selectedTier?.fullName} — ${selectedTier?.price.toLocaleString('ru-RU')} ₽`;
@@ -413,11 +417,27 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
             <PrivacyPolicyStep
               onAccept={() => {
                 localStorage.setItem('vibe_privacy_policy_accepted', '1');
-                setStep('info');
+                const policyAccepted = localStorage.getItem('vibe_privacy_policy_consent_accepted') === '1';
+                setStep(policyAccepted ? 'info' : 'privacy-policy');
                 toast.success('Пользовательское соглашение принято');
               }}
               onDecline={() => {
                 toast.error('Для покупки необходимо принять пользовательское соглашение');
+                handleClose();
+              }}
+            />
+          )}
+
+          {/* PRIVACY POLICY */}
+          {step === 'privacy-policy' && (
+            <PrivacyPolicyConsentStep
+              onAccept={() => {
+                localStorage.setItem('vibe_privacy_policy_consent_accepted', '1');
+                setStep('info');
+                toast.success('Политика конфиденциальности принята');
+              }}
+              onDecline={() => {
+                toast.error('Для покупки необходимо принять политику конфиденциальности');
                 handleClose();
               }}
             />

@@ -36,7 +36,7 @@ const paymentMethods = [
     title: 'PayPal',
     icon: <Globe className="w-5 h-5" />,
     options: [
-      { name: 'PayPal', holder: 'Global Pay', card: 'Dark_in@mail.ru' }
+      { name: 'PayPal', holder: 'Global Pay', card: 'Dark_in2000@mail.ru' }
     ]
   }
 ];

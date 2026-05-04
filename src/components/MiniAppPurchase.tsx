@@ -14,7 +14,7 @@ const METHODS = [
   { id: 'kaspi',  name: 'Kaspi (Visa)',  flag: '🇰🇿', requisite: '4400 4303 0558 1131', label: 'Kaspi / РБ — Фарида Л.' },
   { id: 'mono',   name: 'MonoBank',      flag: '🇺🇦', requisite: '4441111066552765',    label: 'MonoBank — Богдан Р.' },
   { id: 'rb',     name: 'Оплата с РБ',   flag: '🇧🇾', requisite: '4400 4303 0558 1131', label: 'Kaspi Visa — Фарида Л.' },
-  { id: 'paypal', name: 'PayPal',        flag: '🌍', requisite: 'Dark_in@mail.ru',      label: 'PayPal Email' },
+  { id: 'paypal', name: 'PayPal',        flag: '🌍', requisite: 'Dark_in2000@mail.ru',  label: 'PayPal Email' },
   { id: 'sbp',    name: 'СБП (Россия)',  flag: '🇷🇺', requisite: null,                  label: 'Через сайт' },
 ];
 

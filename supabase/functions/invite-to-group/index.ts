@@ -16,6 +16,7 @@ const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: 
   'friday_pro':  { chatId: '-1001816037231', name: 'Friday Pro' },
   'vibewall':    { chatId: '-1002277771896', name: 'VibeWall' },
   'pccontrol':   { chatId: '-1002268406304', name: 'PcControl' },
+  'metacore':    { chatId: '-1003724594399', name: 'Metacore' },
   // Jarvis Industries тарифы — каждый со своим ботом
   'jarvis_industries_mk1': { chatId: '-1003743900341', name: 'Jarvis Industries MK-I',   botToken: Deno.env.get('JI_MK1_BOT_TOKEN')! },
   'jarvis_industries_mk2': { chatId: '-1003794537001', name: 'Jarvis Industries MK-II',  botToken: Deno.env.get('JI_MK2_BOT_TOKEN')! },
@@ -32,6 +33,7 @@ const PRODUCT_NAME_MAP: Record<string, string> = {
   'vibe wall':   'vibewall',
   'pccontrol':   'pccontrol',
   'pc control':  'pccontrol',
+  'metacore':    'metacore',
 };
 
 function resolveProductKey(productId: string, productName: string): string | null {
