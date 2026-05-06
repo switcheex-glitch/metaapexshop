@@ -1,0 +1,10 @@
+project_id = "nsrilzwmclsiwtrsomer"
+
+[functions.platega-webhook]
+verify_jwt = false
+
+[functions.invite-to-group]
+verify_jwt = false
+
+[functions.activate-key]
+verify_jwt = false
