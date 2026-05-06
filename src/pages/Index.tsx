@@ -7,23 +7,25 @@ import ProductCard from '@/components/ProductCard';
 import PaymentModal from '@/components/PaymentModal';
 import InfoModal from '@/components/InfoModal';
 import JarvisIndustriesModal from '@/components/JarvisIndustriesModal';
+import MetacoreModal from '@/components/MetacoreModal';
 import LegalDocsModal from '@/components/LegalDocsModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useSale } from '@/hooks/use-sale';
 
 const JARVIS_INDUSTRIES_ID = 'jarvis-industries';
+const METACORE_ID = 'metacore';
 
 const products = [
   {
     id: 'metacore',
     name: 'Metacore',
     description: 'Десктопная IDE с командой AI-агентов: сайты, SaaS, боты и приложения от идеи до запуска за 2 минуты.',
-    fullInfo: 'Десктопное приложение, которое пишет код за тебя.\nНе плагин. Не браузерная игрушка. Полноценная IDE на твоём компьютере, которая умеет поднимать сайты, SaaS, telegram-боты и electron-приложения от идеи до запуска за 2 минуты.\n\n━━━━━━━━━━━━━━━━━━━━━\n\n🔥 Что умеет Metacore:\n\n🤖 Топовые AI-модели в одной подписке\nClaude Opus 4.7 · GPT-5 · Gemini 3 Pro · Kimi K2 · 10+ других. Без API-ключей, без счетов от Anthropic и OpenAI отдельно. Платишь один раз — пользуешься всем.\n\n⚡ Команда из 4 AI-агентов\nDesigner → Backend → Frontend → QA. Один промпт — на выходе готовый проект с дизайном, API, тестами и git-историей.\n\n🎨 Лайв-превью с hot reload\nПишешь промпт — за 5 секунд видишь результат прямо в окне Metacore. Без VS Code, без браузера, без переключений.\n\n🔌 Интеграции в один клик\nSupabase для бекенда, GitHub для версионирования, MCP-серверы для расширения. Всё подключается кнопкой, без yaml-конфигов.\n\n📚 Библиотека промптов\nСохраняешь свои наработки — копируешь одним кликом. «Сделай форму с Zod», «Добавь dark mode», «Напиши FastAPI-роут» — всё под рукой.\n\n🛒 Публичная галерея\nПокупаешь чужие проекты — через секунду они у тебя локально. Продаёшь свои — забираешь 70% с каждой продажи.\n\n💰 Встроенный кошелёк\nЗаработал на шаблонах? Запросил вывод USDT (TRC20 / ERC20) — получил.\n\n🔄 Авто-обновления без переустановки\nУстановил один раз — Metacore сам обновляется в фоне. Никаких ручных скачиваний.\n\n━━━━━━━━━━━━━━━━━━━━━\n\nПодписка: 1999 ₽ / месяц · 200 токенов в месяц.',
+    fullInfo: 'Десктопное приложение, которое пишет код за тебя.\nНе плагин. Не браузерная игрушка. Полноценная IDE на твоём компьютере, которая умеет поднимать сайты, SaaS, telegram-боты и electron-приложения от идеи до запуска за 2 минуты.\n\n━━━━━━━━━━━━━━━━━━━━━\n\n🔥 Что умеет Metacore:\n\n🤖 Топовые AI-модели в одной подписке\nClaude Opus 4.7 · GPT-5 · Gemini 3 Pro · Kimi K2 · 10+ других. Без API-ключей, без счетов от Anthropic и OpenAI отдельно. Платишь один раз — пользуешься всем.\n\n⚡ Команда из 4 AI-агентов\nDesigner → Backend → Frontend → QA. Один промпт — на выходе готовый проект с дизайном, API, тестами и git-историей.\n\n🎨 Лайв-превью с hot reload\nПишешь промпт — за 5 секунд видишь результат прямо в окне Metacore. Без VS Code, без браузера, без переключений.\n\n🔌 Интеграции в один клик\nSupabase для бекенда, GitHub для версионирования, MCP-серверы для расширения. Всё подключается кнопкой, без yaml-конфигов.\n\n📚 Библиотека промптов\nСохраняешь свои наработки — копируешь одним кликом. «Сделай форму с Zod», «Добавь dark mode», «Напиши FastAPI-роут» — всё под рукой.\n\n🛒 Публичная галерея\nПокупаешь чужие проекты — через секунду они у тебя локально. Продаёшь свои — забираешь 70% с каждой продажи.\n\n💰 Встроенный кошелёк\nЗаработал на шаблонах? Запросил вывод USDT (TRC20 / ERC20) — получил.\n\n🔄 Авто-обновления без переустановки\nУстановил один раз — Metacore сам обновляется в фоне. Никаких ручных скачиваний.\n\n━━━━━━━━━━━━━━━━━━━━━\n\n🎁 Три тарифа на выбор:\n• Demo — 200 токенов · 1 999 ₽ (ознакомительный)\n• Standard — 7 000 токенов · 9 990 ₽ (основной, лучший выбор)\n• Pro — 15 000 токенов · 15 000 ₽ (для профи, лучшая цена/токен)',
     price: '1999',
     image: '/assets/metacore.jpg',
     isComingSoon: false,
     isNew: true,
-    isMonthly: true
+    isMonthly: false
   },
   {
     id: JARVIS_INDUSTRIES_ID,
@@ -64,11 +66,16 @@ const Index = () => {
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isJarvisIndustriesOpen, setIsJarvisIndustriesOpen] = useState(false);
+  const [isMetacoreOpen, setIsMetacoreOpen] = useState(false);
   const [isLegalDocsOpen, setIsLegalDocsOpen] = useState(false);
 
   const handlePay = (productName: string, productId: string) => {
     if (productId === JARVIS_INDUSTRIES_ID) {
       setIsJarvisIndustriesOpen(true);
+      return;
+    }
+    if (productId === METACORE_ID) {
+      setIsMetacoreOpen(true);
       return;
     }
     setSelectedProduct(productName);
@@ -283,6 +290,11 @@ const Index = () => {
       <JarvisIndustriesModal
         isOpen={isJarvisIndustriesOpen}
         onClose={() => setIsJarvisIndustriesOpen(false)}
+      />
+
+      <MetacoreModal
+        isOpen={isMetacoreOpen}
+        onClose={() => setIsMetacoreOpen(false)}
       />
 
       <LegalDocsModal

@@ -21,6 +21,9 @@ export type MetacorePurchase = {
   invited_to_group: boolean;
   invited_at: string | null;
   invite_link: string | null;
+  activation_key: string | null;
+  tier: 'demo' | 'standard' | 'pro';
+  tokens_purchased: number | null;
   created_at: string;
   approved_at: string | null;
 };

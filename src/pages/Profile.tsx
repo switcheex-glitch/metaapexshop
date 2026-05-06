@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/integrations/supabase/client';
+import { metacoreSupabase, METACORE_FN_BASE, METACORE_SUPABASE_KEY } from '@/integrations/supabase/metacore-client';
 
 const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
 
@@ -81,6 +82,13 @@ const Profile = () => {
         .eq('profile_id', profile.id)
         .order('purchased_at', { ascending: false });
 
+      // Metacore покупки (отдельный Supabase-проект)
+      const { data: metacorePurchases } = await metacoreSupabase
+        .from('metacore_purchases')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .order('created_at', { ascending: false });
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const normalizedJI = (jiPurchases || []).map((p: any) => ({
         ...p,
@@ -90,9 +98,17 @@ const Profile = () => {
       }));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const normalizedMetacore = (metacorePurchases || []).map((p: any) => ({
+        ...p,
+        purchased_at: p.created_at,
+        is_metacore: true,
+      }));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allPurchases = [
         ...(regularPurchases || []).map((p: any) => ({ ...p, is_jarvis_industries: false })),
         ...normalizedJI,
+        ...normalizedMetacore,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ].sort((a: any, b: any) => new Date(b.purchased_at).getTime() - new Date(a.purchased_at).getTime());
 
@@ -130,28 +146,36 @@ const Profile = () => {
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean) => {
+  const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean, isMetacore?: boolean) => {
     setInvitingId(purchaseId);
     setInviteErrors(prev => { const n = {...prev}; delete n[purchaseId]; return n; });
 
     const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
 
     try {
-      let accessToken = ANON_KEY;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) accessToken = session.access_token;
-      } catch (_) { /* используем anon key */ }
+      const url = isMetacore
+        ? `${METACORE_FN_BASE}/invite-to-group`
+        : `${SUPABASE_FN}/invite-to-group`;
 
-      console.log('[handleGetProduct] calling invite-to-group, purchaseId:', purchaseId, 'isJI:', isJarvisIndustries);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (isMetacore) {
+        headers['Authorization'] = `Bearer ${METACORE_SUPABASE_KEY}`;
+        headers['apikey'] = METACORE_SUPABASE_KEY;
+      } else {
+        let accessToken = ANON_KEY;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) accessToken = session.access_token;
+        } catch (_) { /* используем anon key */ }
+        headers['Authorization'] = `Bearer ${accessToken}`;
+        headers['apikey'] = ANON_KEY;
+      }
 
-      const res = await fetch(`${SUPABASE_FN}/invite-to-group`, {
+      console.log('[handleGetProduct] calling invite-to-group, purchaseId:', purchaseId, 'isJI:', isJarvisIndustries, 'isMetacore:', isMetacore);
+
+      const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': ANON_KEY,
-        },
+        headers,
         body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
       });
 
@@ -342,9 +366,10 @@ const Profile = () => {
                     <p className="text-zinc-600 text-sm font-medium">Покупок пока нет</p>
                   </div>
                 ) : (
-                  purchases.map((item: Purchase & { is_jarvis_industries?: boolean; access_start?: string; access_end?: string; tokens?: number; tier?: string }) => {
+                  purchases.map((item: Purchase & { is_jarvis_industries?: boolean; is_metacore?: boolean; activation_key?: string | null; access_start?: string; access_end?: string; tokens?: number; tokens_purchased?: number; tier?: string }) => {
                     const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
                     const isJI = item.is_jarvis_industries;
+                    const isMetacore = item.is_metacore;
 
                     // Для JI — считаем оставшиеся дни
                     let accessDaysLeft: number | null = null;
@@ -366,6 +391,16 @@ const Profile = () => {
                               {isJI && item.tokens && (
                                 <span className="flex items-center gap-1 text-[9px] font-black bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full border border-white/10">
                                   <Zap size={9} />{item.tokens.toLocaleString('ru-RU')} токенов
+                                </span>
+                              )}
+                              {isMetacore && item.tier && (
+                                <span className="flex items-center gap-1 text-[9px] font-black bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full border border-white/10 uppercase">
+                                  {item.tier}
+                                </span>
+                              )}
+                              {isMetacore && item.tokens_purchased && (
+                                <span className="flex items-center gap-1 text-[9px] font-black bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full border border-white/10">
+                                  <Zap size={9} />{item.tokens_purchased.toLocaleString('ru-RU')} токенов
                                 </span>
                               )}
                             </div>
@@ -484,6 +519,30 @@ const Profile = () => {
                                 Получить токен → @JarvisIndustriesTokens_bot
                               </a>
                             )}
+                            {isMetacore && item.activation_key && (
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-1.5">
+                                  <Key size={10} /> Ключ активации Metacore
+                                </p>
+                                <div className="flex items-center gap-2 bg-black/60 border border-white/10 rounded-xl px-3 py-2.5">
+                                  <code className="flex-1 text-[11px] font-mono text-white/80 tracking-wider truncate">
+                                    {item.activation_key}
+                                  </code>
+                                  <button
+                                    onClick={() => copyToken(item.activation_key as string)}
+                                    className="flex-shrink-0 p-1.5 bg-white/5 hover:bg-white/15 rounded-lg transition-colors"
+                                  >
+                                    {copiedToken === item.activation_key
+                                      ? <CheckCircle size={13} className="text-green-400" />
+                                      : <Copy size={13} className="text-zinc-400" />
+                                    }
+                                  </button>
+                                </div>
+                                {copiedToken === item.activation_key && (
+                                  <p className="text-[10px] text-green-400 mt-1 px-1">✓ Скопировано!</p>
+                                )}
+                              </div>
+                            )}
                             {item.invited_to_group && !item.invite_link && !inviteLinks[item.id] ? (
                               <div className="flex items-center gap-2 text-xs text-green-400 font-bold bg-green-400/10 px-3 py-2 rounded-xl">
                                 <span className="w-2 h-2 rounded-full bg-green-400" />
@@ -498,7 +557,7 @@ const Profile = () => {
                                       window.open(link, '_blank');
                                     } else {
                                       setInviteErrors(prev => { const n = {...prev}; delete n[item.id]; return n; });
-                                      handleGetProduct(item.id, isJI);
+                                      handleGetProduct(item.id, isJI, isMetacore);
                                     }
                                   }}
                                   disabled={invitingId === item.id || (isJI && accessExpired)}

@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 .dyad/
+
+.vercel
+
+# Supabase CLI service files
+supabase/.temp/
+metacore-supabase/supabase/.temp/
