@@ -45,8 +45,8 @@ const TIERS: Record<string, { name: string; price: number; tokens: number }> = {
 // Серверная цена применяет скидку сама, чтобы Platega-сумма
 // совпадала с витриной во время акции.
 // ------------------------------------------------------------
-const SALE_START   = Date.parse('2026-05-05T21:48:00Z'); // 00:48 МСК 6 мая
-const SALE_END     = Date.parse('2026-05-08T21:48:00Z'); // 00:48 МСК 9 мая
+const SALE_START   = Date.parse('2026-05-21T21:48:00Z'); // 00:48 МСК 22 мая
+const SALE_END     = Date.parse('2026-05-24T21:48:00Z'); // 00:48 МСК 25 мая
 const SALE_PERCENT = 30;
 
 function effectivePrice(basePrice: number): number {
