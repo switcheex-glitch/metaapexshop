@@ -189,7 +189,7 @@ const Index = () => {
                           на весь каталог
                         </p>
                         <p className="text-white/40 text-[10px] sm:text-xs mt-0.5">
-                          4 мая 09:47 — 6 мая 09:47 МСК · 48 часов
+                          6 мая 00:48 — 9 мая 00:48 МСК · 3 дня
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -213,7 +213,7 @@ const Index = () => {
                       −{percent}% на всё
                     </p>
                     <p className="text-white/50 text-xs sm:text-sm mt-1">
-                      APEX &amp; METACORE · 4 мая 09:47 МСК
+                      APEX &amp; METACORE · 6 мая 00:48 МСК
                     </p>
                   </>
                 )}

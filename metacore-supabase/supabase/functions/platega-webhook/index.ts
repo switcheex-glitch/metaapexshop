@@ -41,6 +41,23 @@ const TIERS: Record<string, { name: string; price: number; tokens: number }> = {
 };
 
 // ------------------------------------------------------------
+// Окно распродажи — должно совпадать с src/hooks/use-sale.ts.
+// Серверная цена применяет скидку сама, чтобы Platega-сумма
+// совпадала с витриной во время акции.
+// ------------------------------------------------------------
+const SALE_START   = Date.parse('2026-05-05T21:48:00Z'); // 00:48 МСК 6 мая
+const SALE_END     = Date.parse('2026-05-08T21:48:00Z'); // 00:48 МСК 9 мая
+const SALE_PERCENT = 30;
+
+function effectivePrice(basePrice: number): number {
+  const now = Date.now();
+  if (now >= SALE_START && now < SALE_END) {
+    return Math.round(basePrice * (1 - SALE_PERCENT / 100));
+  }
+  return basePrice;
+}
+
+// ------------------------------------------------------------
 // helpers
 // ------------------------------------------------------------
 function json(body: unknown, status = 200) {
@@ -179,7 +196,7 @@ serve(async (req) => {
     const tierCfg = TIERS[tier];
     if (!tierCfg) return json({ error: `Неизвестный тариф: ${tier}` }, 400);
 
-    const amount      = tierCfg.price;
+    const amount      = effectivePrice(tierCfg.price); // с учётом активной распродажи
     const productId   = `metacore_${tier}`;
     const productName = tierCfg.name;
     const tokens      = tierCfg.tokens;
