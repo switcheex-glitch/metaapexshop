@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 
-// 🤝 APEX & METACORE — скидка 30% на 48 часов
-// с 04.05.2026 09:47 по 06.05.2026 09:47 МСК (МСК = UTC+3)
-const SALE_START = new Date('2026-05-04T06:47:00Z'); // 09:47 МСК 4 мая
-const SALE_END   = new Date('2026-05-06T06:47:00Z'); // 09:47 МСК 6 мая
+// 🤝 APEX & METACORE — скидка 30% на 3 дня
+// с 06.05.2026 00:48 по 09.05.2026 00:48 МСК (МСК = UTC+3)
+const SALE_START = new Date('2026-05-05T21:48:00Z'); // 00:48 МСК 6 мая
+const SALE_END   = new Date('2026-05-08T21:48:00Z'); // 00:48 МСК 9 мая
 const SALE_PERCENT = 30;
 
 function isSaleNow(): boolean {
