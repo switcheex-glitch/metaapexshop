@@ -107,125 +107,97 @@ const Index = () => {
           bg-black overflow-hidden
         "
       >
-        {/* Header */}
-        <header className="pt-safe pt-4 sm:pt-10 pb-3 sm:pb-6 px-4 sm:px-12 flex justify-between items-center bg-black/80 backdrop-blur-xl z-20 flex-shrink-0">
+        {/* Header — Compact & Clean */}
+        <header className="pt-safe pt-3 sm:pt-8 pb-2 sm:pb-4 px-3.5 sm:px-10 flex justify-between items-center bg-black/95 backdrop-blur-lg z-20 flex-shrink-0">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Магазин</p>
-            <p className="text-base sm:text-xl font-black tracking-tighter uppercase italic">Apex Technology</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-600">Shop</p>
+            <p className="text-sm sm:text-lg font-black tracking-tighter uppercase leading-none">Apex</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsLegalDocsOpen(true)}
-              className="h-9 sm:h-10 px-3 sm:px-3.5 rounded-full border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white hover:border-white/20 active:scale-95 transition-all flex items-center gap-1.5"
+              className="h-8 sm:h-9 w-8 sm:w-9 rounded-lg border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
               aria-label="Документы и соглашения"
             >
-              <ScrollText size={14} />
-              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider">Документы</span>
+              <ScrollText size={16} />
             </button>
             <button
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 active:scale-95 transition-transform bg-zinc-900 flex items-center justify-center"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg overflow-hidden border border-white/10 active:scale-90 transition-transform bg-white/5 flex items-center justify-center flex-shrink-0"
               onClick={() => profile ? navigate('/profile') : navigate('/login')}
             >
               {profile ? (
                 profile.avatar_url ? (
                   <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-white font-black text-sm uppercase">{profile.username.charAt(0)}</span>
+                  <span className="text-white font-black text-xs uppercase">{profile.username.charAt(0)}</span>
                 )
               ) : (
-                <User size={16} className="text-zinc-400" />
+                <User size={14} className="text-zinc-400" />
               )}
             </button>
           </div>
         </header>
 
-        {/* Карточки */}
-        <main className="flex-1 overflow-y-auto px-3 sm:px-12 pb-3 sm:pb-12">
+        {/* Main Content — Products First */}
+        <main className="flex-1 overflow-y-auto px-3 sm:px-10 pt-2 sm:pt-4 pb-16 sm:pb-20">
 
-          {/* 🤝 APEX & METACORE Sale Banner */}
+          {/* 🤝 APEX & METACORE Sale Banner — Compact for Mobile */}
           {showBanner && (
-            <div className="mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl">
-              {/* Фоновый градиент */}
+            <div className="mb-2.5 sm:mb-4 relative overflow-hidden rounded-xl sm:rounded-2xl">
               <div className={`absolute inset-0 ${isSaleActive ? 'bg-gradient-to-br from-rose-600 via-orange-500 to-yellow-500' : 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-800'}`} />
-              {/* Тёмный оверлей поверх для читаемости */}
-              <div className="absolute inset-0 bg-black/50" />
-              {/* Мерцающий glow по краям */}
+              <div className="absolute inset-0 bg-black/40" />
               {isSaleActive && (
-                <div className="absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-400 opacity-60 blur-sm animate-pulse" />
+                <div className="absolute -inset-[1px] rounded-xl sm:rounded-2xl bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-400 opacity-50 blur-sm animate-pulse" />
               )}
-              {/* Шиммер */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
-                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl sm:rounded-2xl">
+                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
               </div>
 
-              <div className="relative px-4 py-4 sm:px-6 sm:py-5">
+              <div className="relative px-3 py-3 sm:px-5 sm:py-4">
                 {isSaleActive ? (
                   <>
-                    {/* Верхняя строка: бейдж + таймер */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-white text-black text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-widest animate-pulse">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-white text-black text-[8px] sm:text-xs font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
                           🔥 АКТИВНА
                         </span>
-                        <span className="text-white/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                          APEX &amp; METACORE
+                        <span className="text-white/50 text-[8px] sm:text-xs font-bold uppercase tracking-wider">
+                          −{percent}%
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-black/50 border border-white/20 rounded-xl px-3 py-1.5">
-                        <Clock size={12} className="text-orange-300" />
-                        <span className="font-mono text-sm sm:text-base font-black text-white tabular-nums">
+                      <div className="flex items-center gap-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1">
+                        <Clock size={10} className="text-orange-300" />
+                        <span className="font-mono text-xs sm:text-sm font-black text-white tabular-nums">
                           {countdown}
                         </span>
-                        <span className="text-[9px] text-white/40 uppercase font-bold ml-0.5">до конца</span>
                       </div>
                     </div>
-                    {/* Большой текст */}
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-3xl sm:text-5xl font-black text-white uppercase leading-none tracking-tighter drop-shadow-[0_2px_12px_rgba(251,146,60,0.5)]">
-                          −{percent}%
-                        </p>
-                        <p className="text-white/80 text-sm sm:text-base font-black uppercase tracking-tight mt-1">
-                          на весь каталог
-                        </p>
-                        <p className="text-white/40 text-[10px] sm:text-xs mt-0.5">
-                          22 мая 00:48 — 25 мая 00:48 МСК · 3 дня
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="text-3xl sm:text-4xl">🤝</span>
-                      </div>
-                    </div>
+                    <p className="text-zinc-300 text-[10px] sm:text-xs font-bold">
+                      на весь каталог • 22–25 мая МСК
+                    </p>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="bg-white/10 border border-white/20 text-white/80 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                    <div className="flex items-center justify-between">
+                      <span className="bg-white/10 border border-white/20 text-white/70 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                         ⏳ Скоро
                       </span>
-                      <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5">
-                        <Clock size={12} className="text-zinc-400" />
-                        <span className="font-mono text-sm font-black text-white tabular-nums">{countdown}</span>
-                        <span className="text-[9px] text-white/30 uppercase font-bold ml-0.5">до начала</span>
+                      <p className="text-zinc-300 text-[10px] sm:text-xs font-bold">
+                        −{percent}% на весь каталог
+                      </p>
+                      <div className="flex items-center gap-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1">
+                        <Clock size={10} className="text-zinc-400" />
+                        <span className="font-mono text-xs font-black text-white tabular-nums">{countdown}</span>
                       </div>
                     </div>
-                    <p className="text-2xl sm:text-4xl font-black text-white uppercase leading-none tracking-tighter">
-                      −{percent}% на всё
-                    </p>
-                    <p className="text-white/50 text-xs sm:text-sm mt-1">
-                      APEX &amp; METACORE · 22 мая 00:48 МСК
-                    </p>
                   </>
                 )}
               </div>
             </div>
           )}
 
-          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em] mb-3 sm:mb-6">
-            Рекомендуемые товары
-          </p>
-          {/* Мобиль: 1 колонка. ПК: 2 колонки */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
             {products.map((product) => {
               const originalPrice = parseInt(product.price) || 0;
               const discountedPrice = isSaleActive && !product.isComingSoon && originalPrice > 0
@@ -253,20 +225,20 @@ const Index = () => {
           </div>
         </main>
 
-        {/* Bottom Nav */}
-        <nav className="pb-safe pb-4 sm:pb-10 pt-3 sm:pt-4 px-6 sm:px-10 flex justify-between items-center border-t border-white/5 bg-black/90 backdrop-blur-xl z-20 flex-shrink-0">
+        {/* Bottom Nav — Minimal & Clean */}
+        <nav className="pb-safe pb-2 sm:pb-6 pt-2 sm:pt-3 px-3 sm:px-8 flex justify-center items-center gap-3 sm:gap-4 border-t border-white/5 bg-black/95 backdrop-blur-lg z-20 flex-shrink-0">
           <button
             onClick={() => window.open('https://t.me/vibetechhSupport?direct', '_blank')}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400"
+            className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400 hover:text-white"
           >
-            <Headphones size={20} />
+            <Headphones size={16} />
           </button>
-          <div className="w-12 h-1 bg-white/10 rounded-full" />
+          <div className="w-0.5 h-6 bg-white/10 rounded-full" />
           <button
             onClick={() => window.open('https://t.me/ApexTechhh', '_blank')}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400"
+            className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400 hover:text-white"
           >
-            <Newspaper size={20} />
+            <Newspaper size={16} />
           </button>
         </nav>
       </div>
