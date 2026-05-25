@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, Newspaper, User, Gift, Clock, ScrollText } from "lucide-react";
+import { Headphones, Newspaper, User, Gift, Clock, ScrollText, Zap, ChevronDown, Search, Heart } from "lucide-react";
 import ProductCard from '@/components/ProductCard';
 import PaymentModal from '@/components/PaymentModal';
 import InfoModal from '@/components/InfoModal';
@@ -95,102 +95,108 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-black font-sans text-white flex flex-col">
 
-      {/* iPhone 17 Pro Max view — всегда как на телефоне */}
+      {/* iPhone 17 Pro Max Full Screen App */}
       <div
         ref={containerRef}
         className="flex flex-col flex-1 w-full h-screen bg-black overflow-hidden"
       >
-        {/* Header — iPhone Style */}
-        <header className="pt-safe pt-3 pb-2 px-3.5 flex justify-between items-center bg-black/95 backdrop-blur-lg z-20 flex-shrink-0">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-600">Shop</p>
-            <p className="text-sm font-black tracking-tighter uppercase leading-none">Apex</p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setIsLegalDocsOpen(true)}
-              className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
-              aria-label="Документы и соглашения"
-            >
-              <ScrollText size={16} />
-            </button>
-            <button
-              className="h-8 w-8 rounded-lg overflow-hidden border border-white/10 active:scale-90 transition-transform bg-white/5 flex items-center justify-center flex-shrink-0"
-              onClick={() => profile ? navigate('/profile') : navigate('/login')}
-            >
-              {profile ? (
-                profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-white font-black text-xs uppercase">{profile.username.charAt(0)}</span>
-                )
-              ) : (
-                <User size={14} className="text-zinc-400" />
-              )}
-            </button>
-          </div>
-        </header>
-
-        {/* Main Content — Products First */}
-        <main className="flex-1 overflow-y-auto px-3 pt-2 pb-16">
-
-          {/* 🤝 APEX & METACORE Sale Banner — iPhone Style */}
-          {showBanner && (
-            <div className="mb-2.5 relative overflow-hidden rounded-xl">
-              <div className={`absolute inset-0 ${isSaleActive ? 'bg-gradient-to-br from-rose-600 via-orange-500 to-yellow-500' : 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-800'}`} />
-              <div className="absolute inset-0 bg-black/40" />
-              {isSaleActive && (
-                <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-400 opacity-50 blur-sm animate-pulse" />
-              )}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
-                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-              </div>
-
-              <div className="relative px-3 py-3">
-                {isSaleActive ? (
-                  <>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-white text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-                          🔥 АКТИВНА
-                        </span>
-                        <span className="text-white/50 text-[8px] font-bold uppercase tracking-wider">
-                          −{percent}%
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1">
-                        <Clock size={10} className="text-orange-300" />
-                        <span className="font-mono text-xs font-black text-white tabular-nums">
-                          {countdown}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-zinc-300 text-[10px] font-bold">
-                      на весь каталог • 22–25 мая МСК
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="bg-white/10 border border-white/20 text-white/70 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
-                        ⏳ Скоро
-                      </span>
-                      <p className="text-zinc-300 text-[10px] font-bold flex-1">
-                        −{percent}% на весь каталог
-                      </p>
-                      <div className="flex items-center gap-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1 flex-shrink-0">
-                        <Clock size={10} className="text-zinc-400" />
-                        <span className="font-mono text-xs font-black text-white tabular-nums">{countdown}</span>
-                      </div>
-                    </div>
-                  </>
-                )}
+        {/* ===== TOP SECTION: Logo + Search Bar ===== */}
+        <div className="pt-safe pt-3 pb-3 px-3.5 flex-shrink-0 bg-black">
+          {/* Logo Row */}
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Zap size={18} className="text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-zinc-400 leading-none">APEX</p>
+                  <p className="text-[10px] text-zinc-500 leading-none">STORE</p>
+                </div>
               </div>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <button
+                className="h-8 w-8 rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
+                onClick={() => setIsLegalDocsOpen(true)}
+              >
+                <ScrollText size={14} />
+              </button>
+              <button
+                className="h-8 w-8 rounded-full overflow-hidden border border-white/10 active:scale-90 transition-transform bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0"
+                onClick={() => profile ? navigate('/profile') : navigate('/login')}
+              >
+                {profile ? (
+                  profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white font-black text-xs uppercase">{profile.username.charAt(0)}</span>
+                  )
+                ) : (
+                  <User size={14} className="text-white" />
+                )}
+              </button>
+            </div>
+          </div>
 
-          {/* Products Grid — iPhone Single Column */}
-          <div className="grid grid-cols-1 gap-2.5">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+            <input
+              type="text"
+              placeholder="Поиск товаров..."
+              className="w-full h-10 pl-9 pr-3 bg-zinc-900 border border-zinc-800 rounded-full text-white text-sm placeholder-zinc-600 focus:outline-none focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700"
+            />
+          </div>
+        </div>
+
+        {/* ===== SALE BANNER (Горизонтальный скролл) ===== */}
+        {showBanner && (
+          <div className="px-3.5 pb-2 flex-shrink-0">
+            <div className={`relative overflow-hidden rounded-2xl px-4 py-3 ${isSaleActive ? 'bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-500' : 'bg-gradient-to-r from-zinc-800 to-zinc-900'}`}>
+              <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(circle at 20% 50%, white, transparent 50%)'}} />
+              <div className="relative flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap size={16} className="text-white animate-pulse" />
+                    <span className="text-xs font-black text-white uppercase tracking-wider">
+                      {isSaleActive ? 'АКТИВНО' : 'СКОРО'}
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white">−{percent}% на всё</p>
+                  <p className="text-[10px] text-white/70 mt-0.5">22–25 мая МСК</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <Clock size={14} className="text-white/80" />
+                  <span className="font-mono text-xs font-black text-white tabular-nums">{countdown}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== MAIN CONTENT ===== */}
+        <main className="flex-1 overflow-y-auto pb-20">
+          {/* Categories/Filter */}
+          <div className="px-3.5 py-3 flex-shrink-0 border-b border-zinc-900">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              <button className="px-4 py-1.5 bg-white/10 border border-white/20 rounded-full text-xs font-bold text-white whitespace-nowrap hover:bg-white/20 transition-colors">
+                Все
+              </button>
+              <button className="px-4 py-1.5 bg-black border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 whitespace-nowrap hover:border-zinc-700 transition-colors">
+                IDE
+              </button>
+              <button className="px-4 py-1.5 bg-black border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 whitespace-nowrap hover:border-zinc-700 transition-colors">
+                Голос
+              </button>
+              <button className="px-4 py-1.5 bg-black border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 whitespace-nowrap hover:border-zinc-700 transition-colors">
+                Инструменты
+              </button>
+            </div>
+          </div>
+
+          {/* Products — карточки с новым стилем */}
+          <div className="px-3.5 pt-3 space-y-3">
             {products.map((product) => {
               const originalPrice = parseInt(product.price) || 0;
               const discountedPrice = isSaleActive && !product.isComingSoon && originalPrice > 0
@@ -218,22 +224,27 @@ const Index = () => {
           </div>
         </main>
 
-        {/* Bottom Nav — iPhone Style */}
-        <nav className="pb-safe pb-2 pt-2 px-3 flex justify-center items-center gap-3 border-t border-white/5 bg-black/95 backdrop-blur-lg z-20 flex-shrink-0">
-          <button
-            onClick={() => window.open('https://t.me/vibetechhSupport?direct', '_blank')}
-            className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400 hover:text-white"
-          >
-            <Headphones size={16} />
-          </button>
-          <div className="w-0.5 h-6 bg-white/10 rounded-full" />
-          <button
-            onClick={() => window.open('https://t.me/ApexTechhh', '_blank')}
-            className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400 hover:text-white"
-          >
-            <Newspaper size={16} />
-          </button>
-        </nav>
+        {/* ===== BOTTOM TAB BAR (как в iOS) ===== */}
+        <div className="pb-safe pb-2 pt-2 px-3.5 flex-shrink-0 border-t border-zinc-900 bg-black/95 backdrop-blur-lg">
+          <div className="flex justify-around items-center">
+            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-400 hover:text-cyan-400 transition-colors group">
+              <Zap size={20} className="group-hover:text-cyan-400" />
+              <span className="text-[9px] font-bold uppercase">Shop</span>
+            </button>
+            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-600 hover:text-white transition-colors group">
+              <Heart size={20} className="group-hover:text-white" />
+              <span className="text-[9px] font-bold uppercase">Избранное</span>
+            </button>
+            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-600 hover:text-white transition-colors group">
+              <Newspaper size={20} className="group-hover:text-white" />
+              <span className="text-[9px] font-bold uppercase">Новости</span>
+            </button>
+            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-600 hover:text-white transition-colors group" onClick={() => profile ? navigate('/profile') : navigate('/login')}>
+              <User size={20} className="group-hover:text-white" />
+              <span className="text-[9px] font-bold uppercase">Профиль</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <PaymentModal

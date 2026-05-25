@@ -66,170 +66,153 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const currentCurrencyInfo = CURRENCIES.find(c => c.id === currency);
 
   return (
-    <Card className="w-full h-full flex flex-col border-none bg-zinc-950 text-white overflow-hidden rounded-2xl shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-shadow">
-      {/* Top Image Section — iPhone Aspect Ratio */}
-      <div className="relative aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-900">
-        <img
-          src={image}
-          alt={name}
-          className={cn(
-            "w-full h-full object-cover transition-transform duration-700 hover:scale-105",
-            isComingSoon && "opacity-30 grayscale"
-          )}
-        />
-
-        {/* Badges Row */}
-        <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1.5">
-          {isBeta && !isComingSoon && (
-            <div className="rounded-lg border border-amber-400/50 bg-amber-500 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-black shadow-lg shadow-amber-500/40">
-              Beta
-            </div>
-          )}
-
-          {(name === 'Jarvis Industries' || isMonthly) && !isComingSoon && (
-            <div className="rounded-lg border border-emerald-400/50 bg-emerald-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-black shadow-lg shadow-emerald-500/40">
-              1м
-            </div>
-          )}
-        </div>
-
-        <div className="absolute inset-0 p-3 flex flex-col justify-between bg-gradient-to-t from-black/95 via-black/40 to-transparent">
-          {/* Top: Platform Badges */}
-          <div className="flex flex-wrap gap-1">
-            <div className="inline-flex items-center gap-1 rounded-lg border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-300">
-              <Monitor size={10} />
-              Win
-            </div>
-            {hasMacOS && (
-              <div className="inline-flex items-center gap-1 rounded-lg border border-purple-400/30 bg-purple-400/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-purple-300">
-                <Monitor size={10} />
-                Mac
-              </div>
+    <div className="group relative overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 transition-all">
+      {/* Горизонтальная карточка: Image + Info */}
+      <div className="flex gap-3 p-3">
+        {/* Image — Left Side */}
+        <div className="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-900">
+          <img
+            src={image}
+            alt={name}
+            className={cn(
+              "w-full h-full object-cover transition-transform duration-500 group-hover:scale-110",
+              isComingSoon && "opacity-30 grayscale"
             )}
-          </div>
+          />
 
-          {/* Bottom: Title & Description */}
-          <div>
-            <h2 className="text-lg font-black tracking-tight uppercase leading-tight mb-1">
-              {name}
-            </h2>
-            <p className="text-zinc-400 text-[9px] font-medium line-clamp-2">
-              {isComingSoon ? "Скоро" : description}
-            </p>
-          </div>
-        </div>
-
-        {isComingSoon && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <Badge variant="outline" className="text-white border-white/40 bg-white/10 px-3 py-1.5 text-sm font-bold tracking-wider backdrop-blur-xl rounded-lg">
-              СКОРО
-            </Badge>
-          </div>
-        )}
-
-        {/* NEW badge */}
-        {isNew && !isComingSoon && (
-          <div className="absolute top-2.5 left-2.5 z-20">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-lg bg-cyan-400/50 blur-md animate-pulse" />
-              <div className="relative bg-cyan-500 text-black text-[8px] font-black px-2.5 py-0.5 rounded-lg shadow-lg shadow-cyan-500/50 tracking-wider uppercase">
-                ✦ New
+          {/* Badges на изображении */}
+          {isNew && !isComingSoon && (
+            <div className="absolute top-1.5 left-1.5">
+              <div className="bg-cyan-500 text-black text-[7px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-cyan-500/50">
+                NEW
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Sale badge */}
-        {isSaleActive && !isComingSoon && numericPrice > 0 && (
-          <div className="absolute bottom-12 left-2.5 z-20">
-            <div className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-lg shadow-rose-500/40 animate-pulse">
-              −{salePercent}%
+          {isBeta && !isComingSoon && (
+            <div className="absolute top-1.5 right-1.5">
+              <div className="bg-amber-500 text-black text-[7px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/40">
+                BETA
+              </div>
+            </div>
+          )}
+
+          {isSaleActive && !isComingSoon && numericPrice > 0 && (
+            <div className="absolute bottom-1.5 left-1.5">
+              <div className="bg-rose-600 text-white text-[7px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/40">
+                −{salePercent}%
+              </div>
+            </div>
+          )}
+
+          {isComingSoon && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <span className="text-[10px] font-black text-white uppercase">Скоро</span>
+            </div>
+          )}
+        </div>
+
+        {/* Info — Right Side */}
+        <div className="flex-1 flex flex-col justify-between py-1">
+          {/* Title + Description */}
+          <div>
+            <h3 className="text-sm font-black text-white leading-tight mb-1">
+              {name}
+            </h3>
+            <p className="text-xs text-zinc-400 line-clamp-2 mb-2">
+              {description}
+            </p>
+
+            {/* Platform badges */}
+            <div className="flex gap-1 flex-wrap">
+              {hasMacOS && (
+                <span className="text-[8px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
+                  Mac
+                </span>
+              )}
+              <span className="text-[8px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded">
+                Win
+              </span>
+              {(name === 'Jarvis Industries' || isMonthly) && (
+                <span className="text-[8px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  1м
+                </span>
+              )}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Bottom Info Section — iPhone Style */}
-      <div className="flex-1 p-3 flex flex-col justify-between bg-zinc-950">
-        {/* Price Section */}
-        <div>
-          <p className="text-zinc-500 text-[8px] font-bold uppercase tracking-wider block mb-1.5">
-            {isComingSoon ? "Статус" : "Цена"}
-          </p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="text-left hover:text-zinc-300 transition-colors cursor-pointer outline-none w-full">
-                {isComingSoon ? (
-                  <span className="text-lg font-black tracking-tight">TBA</span>
-                ) : isLoadingRates ? (
-                  <Loader2 size={16} className="animate-spin text-zinc-600" />
-                ) : (
-                  <div className="space-y-0.5">
-                    {isSaleActive && salePrice && salePrice !== numericPrice && (
-                      <p className="text-xs text-zinc-500 line-through">
-                        {convertPrice(numericPrice)} {getSymbol()}
+          {/* Price + Button */}
+          <div className="flex items-end justify-between gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="outline-none hover:opacity-80 transition-opacity cursor-pointer">
+                  {isComingSoon ? (
+                    <span className="text-xs font-black text-zinc-500">TBA</span>
+                  ) : isLoadingRates ? (
+                    <Loader2 size={12} className="animate-spin text-zinc-600" />
+                  ) : (
+                    <div>
+                      {isSaleActive && salePrice && salePrice !== numericPrice && (
+                        <p className="text-[9px] text-zinc-600 line-through">
+                          {convertPrice(numericPrice)}
+                        </p>
+                      )}
+                      <p className={cn(
+                        "text-xs font-black leading-none",
+                        isSaleActive && salePrice ? "text-orange-400" : "text-white"
+                      )}>
+                        {convertPrice(displayPrice)} {getSymbol()}
                       </p>
-                    )}
-                    <p className={cn(
-                      "text-lg font-black tracking-tight leading-none",
-                      isSaleActive && salePrice ? "text-orange-400" : "text-white"
-                    )}>
-                      {convertPrice(displayPrice)} {getSymbol()}
-                    </p>
-                  </div>
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-zinc-950 border-white/10 text-white p-2 rounded-xl min-w-[170px] shadow-2xl">
-              <DropdownMenuLabel className="text-[8px] text-zinc-600 uppercase tracking-wider px-3 py-2">
-                Валюта
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-white/5" />
-              {CURRENCIES.map((cur) => (
-                <DropdownMenuItem
-                  key={cur.id}
-                  onClick={() => setCurrency(cur.id as any)}
-                  className={cn(
-                    "rounded-lg cursor-pointer p-2 flex items-center justify-between text-sm",
-                    currency === cur.id ? "bg-white/15 text-white" : "hover:bg-white/5 text-zinc-400"
+                    </div>
                   )}
-                >
-                  <span className="flex items-center gap-1">
-                    <span>{cur.flag}</span>
-                    <span className="font-medium">{cur.label}</span>
-                  </span>
-                  <span className={cn("font-mono text-xs", currency === cur.id ? "text-white font-bold" : "text-zinc-600")}>
-                    {displayPrice > 0 && cur.id !== 'VB'
-                      ? `${convertTo(displayPrice, cur.id as any)} ${cur.symbol}`
-                      : cur.symbol}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-zinc-950 border-zinc-800 text-white p-1 rounded-xl min-w-[150px] shadow-2xl">
+                <DropdownMenuLabel className="text-[7px] text-zinc-600 uppercase px-2 py-1.5">
+                  Валюта
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-800 my-0.5" />
+                {CURRENCIES.map((cur) => (
+                  <DropdownMenuItem
+                    key={cur.id}
+                    onClick={() => setCurrency(cur.id as any)}
+                    className={cn(
+                      "rounded-lg cursor-pointer p-1.5 flex items-center justify-between text-xs",
+                      currency === cur.id ? "bg-white/15 text-white" : "hover:bg-white/5 text-zinc-500"
+                    )}
+                  >
+                    <span className="flex items-center gap-1">
+                      <span>{cur.flag}</span>
+                      <span>{cur.label}</span>
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-        {/* Buttons */}
-        <div className="grid grid-cols-2 gap-1.5 mt-3">
-          <Button
-            variant="outline"
-            className="h-8 rounded-lg border-zinc-700 bg-white/5 text-white hover:bg-white/10 text-xs font-bold transition-all border"
-            onClick={onInfo}
-          >
-            <Info className="w-3 h-3 mr-1" />
-            ?
-          </Button>
-          <Button
-            className="h-8 rounded-lg bg-white text-black hover:bg-zinc-100 text-xs font-bold shadow-lg transition-all"
-            onClick={onPay}
-            disabled={isComingSoon}
-          >
-            <CreditCard className="w-3 h-3 mr-1" />
-            →
-          </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[10px] font-bold transition-colors"
+                onClick={onInfo}
+              >
+                <Info size={12} />
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 px-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[10px] font-black shadow-lg transition-all"
+                onClick={onPay}
+                disabled={isComingSoon}
+              >
+                <CreditCard size={12} className="mr-1" />
+                Купить
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
