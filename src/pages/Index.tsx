@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, Newspaper, User, Gift, Clock, ScrollText, Zap, ChevronDown, Search, Heart } from "lucide-react";
+import { Headphones, Newspaper, User, Gift, Clock, ScrollText } from "lucide-react";
 import ProductCard from '@/components/ProductCard';
 import PaymentModal from '@/components/PaymentModal';
 import InfoModal from '@/components/InfoModal';
@@ -95,108 +95,137 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-black font-sans text-white flex flex-col">
 
-      {/* iPhone 17 Pro Max Full Screen App */}
+      {/* На ПК — iPad frame, на телефоне — полный экран */}
       <div
         ref={containerRef}
-        className="flex flex-col flex-1 w-full h-screen bg-black overflow-hidden"
+        className="
+          flex flex-col flex-1
+          w-full h-screen
+          sm:relative sm:mx-auto sm:my-auto sm:w-full sm:max-w-[1024px] sm:h-[768px]
+          sm:rounded-[40px] sm:border-[12px] sm:border-zinc-900
+          sm:shadow-[0_0_100px_rgba(0,0,0,0.8)]
+          bg-black overflow-hidden
+        "
       >
-        {/* ===== TOP SECTION: Logo + Search Bar ===== */}
-        <div className="pt-safe pt-3 pb-3 px-3.5 flex-shrink-0 bg-black">
-          {/* Logo Row */}
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Zap size={18} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-400 leading-none">APEX</p>
-                  <p className="text-[10px] text-zinc-500 leading-none">STORE</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                className="h-8 w-8 rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
-                onClick={() => setIsLegalDocsOpen(true)}
-              >
-                <ScrollText size={14} />
-              </button>
-              <button
-                className="h-8 w-8 rounded-full overflow-hidden border border-white/10 active:scale-90 transition-transform bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0"
-                onClick={() => profile ? navigate('/profile') : navigate('/login')}
-              >
-                {profile ? (
-                  profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white font-black text-xs uppercase">{profile.username.charAt(0)}</span>
-                  )
+        {/* Header */}
+        <header className="pt-safe pt-4 sm:pt-10 pb-3 sm:pb-6 px-4 sm:px-12 flex justify-between items-center bg-black/80 backdrop-blur-xl z-20 flex-shrink-0">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Магазин</p>
+            <p className="text-base sm:text-xl font-black tracking-tighter uppercase italic">Apex Technology</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsLegalDocsOpen(true)}
+              className="h-9 sm:h-10 px-3 sm:px-3.5 rounded-full border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white hover:border-white/20 active:scale-95 transition-all flex items-center gap-1.5"
+              aria-label="Документы и соглашения"
+            >
+              <ScrollText size={14} />
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider">Документы</span>
+            </button>
+            <button
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 active:scale-95 transition-transform bg-zinc-900 flex items-center justify-center"
+              onClick={() => profile ? navigate('/profile') : navigate('/login')}
+            >
+              {profile ? (
+                profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <User size={14} className="text-white" />
+                  <span className="text-white font-black text-sm uppercase">{profile.username.charAt(0)}</span>
+                )
+              ) : (
+                <User size={16} className="text-zinc-400" />
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* Карточки */}
+        <main className="flex-1 overflow-y-auto px-3 sm:px-12 pb-3 sm:pb-12">
+
+          {/* 🤝 APEX & METACORE Sale Banner */}
+          {showBanner && (
+            <div className="mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl">
+              {/* Фоновый градиент */}
+              <div className={`absolute inset-0 ${isSaleActive ? 'bg-gradient-to-br from-rose-600 via-orange-500 to-yellow-500' : 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-800'}`} />
+              {/* Тёмный оверлей поверх для читаемости */}
+              <div className="absolute inset-0 bg-black/50" />
+              {/* Мерцающий glow по краям */}
+              {isSaleActive && (
+                <div className="absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-400 opacity-60 blur-sm animate-pulse" />
+              )}
+              {/* Шиммер */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
+                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
+              </div>
+
+              <div className="relative px-4 py-4 sm:px-6 sm:py-5">
+                {isSaleActive ? (
+                  <>
+                    {/* Верхняя строка: бейдж + таймер */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-white text-black text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-widest animate-pulse">
+                          🔥 АКТИВНА
+                        </span>
+                        <span className="text-white/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                          APEX &amp; METACORE
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-black/50 border border-white/20 rounded-xl px-3 py-1.5">
+                        <Clock size={12} className="text-orange-300" />
+                        <span className="font-mono text-sm sm:text-base font-black text-white tabular-nums">
+                          {countdown}
+                        </span>
+                        <span className="text-[9px] text-white/40 uppercase font-bold ml-0.5">до конца</span>
+                      </div>
+                    </div>
+                    {/* Большой текст */}
+                    <div className="flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-3xl sm:text-5xl font-black text-white uppercase leading-none tracking-tighter drop-shadow-[0_2px_12px_rgba(251,146,60,0.5)]">
+                          −{percent}%
+                        </p>
+                        <p className="text-white/80 text-sm sm:text-base font-black uppercase tracking-tight mt-1">
+                          на весь каталог
+                        </p>
+                        <p className="text-white/40 text-[10px] sm:text-xs mt-0.5">
+                          22 мая 00:48 — 25 мая 00:48 МСК · 3 дня
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-3xl sm:text-4xl">🤝</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="bg-white/10 border border-white/20 text-white/80 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                        ⏳ Скоро
+                      </span>
+                      <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5">
+                        <Clock size={12} className="text-zinc-400" />
+                        <span className="font-mono text-sm font-black text-white tabular-nums">{countdown}</span>
+                        <span className="text-[9px] text-white/30 uppercase font-bold ml-0.5">до начала</span>
+                      </div>
+                    </div>
+                    <p className="text-2xl sm:text-4xl font-black text-white uppercase leading-none tracking-tighter">
+                      −{percent}% на всё
+                    </p>
+                    <p className="text-white/50 text-xs sm:text-sm mt-1">
+                      APEX &amp; METACORE · 22 мая 00:48 МСК
+                    </p>
+                  </>
                 )}
-              </button>
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
-            <input
-              type="text"
-              placeholder="Поиск товаров..."
-              className="w-full h-10 pl-9 pr-3 bg-zinc-900 border border-zinc-800 rounded-full text-white text-sm placeholder-zinc-600 focus:outline-none focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700"
-            />
-          </div>
-        </div>
-
-        {/* ===== SALE BANNER (Горизонтальный скролл) ===== */}
-        {showBanner && (
-          <div className="px-3.5 pb-2 flex-shrink-0">
-            <div className={`relative overflow-hidden rounded-2xl px-4 py-3 ${isSaleActive ? 'bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-500' : 'bg-gradient-to-r from-zinc-800 to-zinc-900'}`}>
-              <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(circle at 20% 50%, white, transparent 50%)'}} />
-              <div className="relative flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Zap size={16} className="text-white animate-pulse" />
-                    <span className="text-xs font-black text-white uppercase tracking-wider">
-                      {isSaleActive ? 'АКТИВНО' : 'СКОРО'}
-                    </span>
-                  </div>
-                  <p className="text-sm font-black text-white">−{percent}% на всё</p>
-                  <p className="text-[10px] text-white/70 mt-0.5">22–25 мая МСК</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Clock size={14} className="text-white/80" />
-                  <span className="font-mono text-xs font-black text-white tabular-nums">{countdown}</span>
-                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ===== MAIN CONTENT ===== */}
-        <main className="flex-1 overflow-y-auto pb-20">
-          {/* Categories/Filter */}
-          <div className="px-3.5 py-3 flex-shrink-0 border-b border-zinc-900">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-              <button className="px-4 py-1.5 bg-white/10 border border-white/20 rounded-full text-xs font-bold text-white whitespace-nowrap hover:bg-white/20 transition-colors">
-                Все
-              </button>
-              <button className="px-4 py-1.5 bg-black border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 whitespace-nowrap hover:border-zinc-700 transition-colors">
-                IDE
-              </button>
-              <button className="px-4 py-1.5 bg-black border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 whitespace-nowrap hover:border-zinc-700 transition-colors">
-                Голос
-              </button>
-              <button className="px-4 py-1.5 bg-black border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 whitespace-nowrap hover:border-zinc-700 transition-colors">
-                Инструменты
-              </button>
-            </div>
-          </div>
-
-          {/* Products — карточки с новым стилем */}
-          <div className="px-3.5 pt-3 space-y-3">
+          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em] mb-3 sm:mb-6">
+            Рекомендуемые товары
+          </p>
+          {/* Мобиль: 1 колонка. ПК: 2 колонки */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
             {products.map((product) => {
               const originalPrice = parseInt(product.price) || 0;
               const discountedPrice = isSaleActive && !product.isComingSoon && originalPrice > 0
@@ -224,27 +253,22 @@ const Index = () => {
           </div>
         </main>
 
-        {/* ===== BOTTOM TAB BAR (как в iOS) ===== */}
-        <div className="pb-safe pb-2 pt-2 px-3.5 flex-shrink-0 border-t border-zinc-900 bg-black/95 backdrop-blur-lg">
-          <div className="flex justify-around items-center">
-            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-400 hover:text-cyan-400 transition-colors group">
-              <Zap size={20} className="group-hover:text-cyan-400" />
-              <span className="text-[9px] font-bold uppercase">Shop</span>
-            </button>
-            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-600 hover:text-white transition-colors group">
-              <Heart size={20} className="group-hover:text-white" />
-              <span className="text-[9px] font-bold uppercase">Избранное</span>
-            </button>
-            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-600 hover:text-white transition-colors group">
-              <Newspaper size={20} className="group-hover:text-white" />
-              <span className="text-[9px] font-bold uppercase">Новости</span>
-            </button>
-            <button className="flex flex-col items-center justify-center gap-1 py-2 px-6 text-zinc-600 hover:text-white transition-colors group" onClick={() => profile ? navigate('/profile') : navigate('/login')}>
-              <User size={20} className="group-hover:text-white" />
-              <span className="text-[9px] font-bold uppercase">Профиль</span>
-            </button>
-          </div>
-        </div>
+        {/* Bottom Nav */}
+        <nav className="pb-safe pb-4 sm:pb-10 pt-3 sm:pt-4 px-6 sm:px-10 flex justify-between items-center border-t border-white/5 bg-black/90 backdrop-blur-xl z-20 flex-shrink-0">
+          <button
+            onClick={() => window.open('https://t.me/vibetechhSupport?direct', '_blank')}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400"
+          >
+            <Headphones size={20} />
+          </button>
+          <div className="w-12 h-1 bg-white/10 rounded-full" />
+          <button
+            onClick={() => window.open('https://t.me/ApexTechhh', '_blank')}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 active:scale-90 transition-transform text-zinc-400"
+          >
+            <Newspaper size={20} />
+          </button>
+        </nav>
       </div>
 
       <PaymentModal
