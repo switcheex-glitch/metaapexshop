@@ -121,13 +121,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* NEW badge */}
+        {/* RELEASE badge (бывший NEW) */}
         {isNew && !isComingSoon && (
           <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-cyan-400/40 blur-md animate-pulse" />
-              <div className="relative bg-cyan-400 text-black text-[10px] sm:text-xs font-black px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-lg shadow-cyan-400/40 tracking-widest uppercase">
-                ✦ NEW
+              <div className="absolute inset-0 rounded-full bg-fuchsia-500/50 blur-md animate-pulse" />
+              <div className="relative bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white text-[10px] sm:text-xs font-black px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-lg shadow-fuchsia-500/40 tracking-widest uppercase">
+                🎉 RELEASE
               </div>
             </div>
           </div>
@@ -136,8 +136,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Sale badge */}
         {isSaleActive && !isComingSoon && numericPrice > 0 && (
           <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
-            <div className="bg-rose-500 text-white text-[10px] sm:text-xs font-black px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg shadow-rose-500/30 animate-pulse">
-              -{salePercent}%
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-fuchsia-500/40 blur-md animate-pulse" />
+              <div className="relative bg-gradient-to-r from-fuchsia-500 via-purple-500 to-blue-500 text-white text-[10px] sm:text-xs font-black px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg shadow-fuchsia-500/40">
+                ✨ -{salePercent}%
+              </div>
             </div>
           </div>
         )}

@@ -33,7 +33,7 @@ const PLATEGA_API = 'https://app.platega.io/transaction/process';
 // ------------------------------------------------------------
 const SALE_START   = Date.parse('2026-05-27T21:00:00Z'); // 00:00 МСК 28 мая
 const SALE_END     = Date.parse('2026-05-30T21:00:00Z'); // 00:00 МСК 31 мая
-const SALE_PERCENT = 3;
+const SALE_PERCENT = 30;
 
 function effectivePrice(basePrice: number): number {
   const now = Date.now();

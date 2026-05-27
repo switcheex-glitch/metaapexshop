@@ -134,78 +134,98 @@ const Index = () => {
         {/* Карточки */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-12 pb-3 sm:pb-12">
 
-          {/* 🤝 APEX & METACORE Sale Banner */}
+          {/* 🎉 RELEASE Banner — Jarvis · Ghost GPT · Metacore вышли в полной версии */}
           {showBanner && (
             <div className="mb-3 sm:mb-6 relative overflow-hidden rounded-2xl sm:rounded-3xl">
-              {/* Фоновый градиент */}
-              <div className={`absolute inset-0 ${isSaleActive ? 'bg-gradient-to-br from-rose-600 via-orange-500 to-yellow-500' : 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-800'}`} />
-              {/* Тёмный оверлей поверх для читаемости */}
+              {/* Фоновый градиент: фиолетово-синий праздничный */}
+              <div className={`absolute inset-0 ${isSaleActive
+                ? 'bg-gradient-to-br from-fuchsia-600 via-violet-600 to-blue-600'
+                : 'bg-gradient-to-br from-violet-900 via-indigo-900 to-blue-900'}`} />
+              {/* Тёмный оверлей */}
               <div className="absolute inset-0 bg-black/50" />
-              {/* Мерцающий glow по краям */}
+              {/* Мерцающий glow */}
               {isSaleActive && (
-                <div className="absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-400 opacity-60 blur-sm animate-pulse" />
+                <div className="absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-gradient-to-r from-fuchsia-500 via-purple-400 to-blue-500 opacity-60 blur-sm animate-pulse" />
               )}
               {/* Шиммер */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
-                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
+                <div className="absolute -inset-y-4 -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
               </div>
+              {/* Конфетти-эмодзи в углах */}
+              {isSaleActive && (
+                <>
+                  <span className="absolute top-2 right-12 text-xl sm:text-2xl opacity-70 animate-pulse">✨</span>
+                  <span className="absolute bottom-3 left-8 text-base sm:text-xl opacity-60 animate-pulse" style={{ animationDelay: '0.4s' }}>🎊</span>
+                  <span className="absolute top-1/2 right-4 text-sm sm:text-lg opacity-50 animate-pulse" style={{ animationDelay: '0.8s' }}>⭐</span>
+                </>
+              )}
 
               <div className="relative px-4 py-4 sm:px-6 sm:py-5">
                 {isSaleActive ? (
                   <>
-                    {/* Верхняя строка: бейдж + таймер */}
+                    {/* Верх: бейдж RELEASE + таймер */}
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="bg-white text-black text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-widest animate-pulse">
-                          🔥 АКТИВНА
+                          🎉 РЕЛИЗ
                         </span>
-                        <span className="text-white/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                          APEX &amp; METACORE
+                        <span className="bg-gradient-to-r from-fuchsia-400 to-purple-400 text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                          v1.0 · FULL
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-black/50 border border-white/20 rounded-xl px-3 py-1.5">
-                        <Clock size={12} className="text-orange-300" />
+                      <div className="flex items-center gap-1.5 bg-black/60 border border-white/20 rounded-xl px-3 py-1.5">
+                        <Clock size={12} className="text-fuchsia-300" />
                         <span className="font-mono text-sm sm:text-base font-black text-white tabular-nums">
                           {countdown}
                         </span>
                         <span className="text-[9px] text-white/40 uppercase font-bold ml-0.5">до конца</span>
                       </div>
                     </div>
-                    {/* Большой текст */}
+                    {/* Главная строка: продукты + скидка */}
                     <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-3xl sm:text-5xl font-black text-white uppercase leading-none tracking-tighter drop-shadow-[0_2px_12px_rgba(251,146,60,0.5)]">
-                          −{percent}%
+                      <div className="min-w-0">
+                        <p className="text-white/90 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">
+                          🦾 Jarvis · 👻 Ghost GPT · ⚡ Metacore
                         </p>
-                        <p className="text-white/80 text-sm sm:text-base font-black uppercase tracking-tight mt-1">
-                          на весь каталог
+                        <p className="text-2xl sm:text-4xl font-black text-white uppercase leading-tight tracking-tight drop-shadow-[0_2px_12px_rgba(217,70,239,0.6)]">
+                          ВСЕ В ПОЛНОЙ ВЕРСИИ!
                         </p>
-                        <p className="text-white/40 text-[10px] sm:text-xs mt-0.5">
-                          22 мая 00:48 — 25 мая 00:48 МСК · 3 дня
+                        <p className="text-white/70 text-[11px] sm:text-sm font-bold mt-1.5">
+                          В честь релиза — <span className="text-white font-black">−{percent}%</span> на всё · до 31 мая
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <span className="text-3xl sm:text-4xl">🤝</span>
+                        <div className="bg-white text-black px-3 py-2 rounded-2xl shadow-lg">
+                          <p className="text-2xl sm:text-3xl font-black leading-none tracking-tighter">−{percent}%</p>
+                        </div>
                       </div>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="bg-white/10 border border-white/20 text-white/80 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
-                        ⏳ Скоро
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="bg-white/15 border border-white/30 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                          ⏳ Скоро релиз
+                        </span>
+                        <span className="bg-fuchsia-500/30 border border-fuchsia-400/40 text-fuchsia-100 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                          v1.0
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5">
-                        <Clock size={12} className="text-zinc-400" />
+                        <Clock size={12} className="text-fuchsia-300" />
                         <span className="font-mono text-sm font-black text-white tabular-nums">{countdown}</span>
-                        <span className="text-[9px] text-white/30 uppercase font-bold ml-0.5">до начала</span>
+                        <span className="text-[9px] text-white/30 uppercase font-bold ml-0.5">до старта</span>
                       </div>
                     </div>
-                    <p className="text-2xl sm:text-4xl font-black text-white uppercase leading-none tracking-tighter">
-                      −{percent}% на всё
+                    <p className="text-white/80 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">
+                      🦾 Jarvis · 👻 Ghost GPT · ⚡ Metacore
                     </p>
-                    <p className="text-white/50 text-xs sm:text-sm mt-1">
-                      APEX &amp; METACORE · 22 мая 00:48 МСК
+                    <p className="text-xl sm:text-3xl font-black text-white uppercase leading-tight tracking-tight">
+                      РЕЛИЗ ПОЛНЫХ ВЕРСИЙ
+                    </p>
+                    <p className="text-white/60 text-xs sm:text-sm mt-1">
+                      28 мая · скидка <span className="text-white font-black">−{percent}%</span> на 3 дня
                     </p>
                   </>
                 )}
