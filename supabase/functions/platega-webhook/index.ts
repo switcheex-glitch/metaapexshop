@@ -26,6 +26,23 @@ const METHOD_LABELS: Record<string, string> = {
 
 const PLATEGA_API = 'https://app.platega.io/transaction/process';
 
+// ------------------------------------------------------------
+// Окно распродажи — должно совпадать с src/hooks/use-sale.ts.
+// Серверная цена применяет скидку сама, чтобы Platega-сумма
+// совпадала с витриной во время акции.
+// ------------------------------------------------------------
+const SALE_START   = Date.parse('2026-05-27T21:00:00Z'); // 00:00 МСК 28 мая
+const SALE_END     = Date.parse('2026-05-30T21:00:00Z'); // 00:00 МСК 31 мая
+const SALE_PERCENT = 3;
+
+function effectivePrice(basePrice: number): number {
+  const now = Date.now();
+  if (now >= SALE_START && now < SALE_END) {
+    return Math.round(basePrice * (1 - SALE_PERCENT / 100));
+  }
+  return basePrice;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -111,6 +128,7 @@ serve(async (req) => {
     }
 
     const normalizedProductId = productId || productName.toLowerCase().replace(/\s+/g, '_');
+    const finalPrice = effectivePrice(Number(price));
 
     // 1.1 — pending-запись
     const { data: purchase, error: insertErr } = await supabase
@@ -119,7 +137,7 @@ serve(async (req) => {
         profile_id:     profileId,
         product_id:     normalizedProductId,
         product_name:   productName,
-        price:          Number(price),
+        price:          finalPrice,
         status:         'pending',
         payment_method: METHOD_LABELS[paymentMethodId] || paymentMethodId,
       })
@@ -134,7 +152,7 @@ serve(async (req) => {
     // 1.2 — payload для Platega
     const plategaPayload = {
       paymentMethod,
-      paymentDetails: { amount: Number(price), currency },
+      paymentDetails: { amount: finalPrice, currency },
       description: `Покупка: ${productName}`,
       return: RETURN_URL,
       failedUrl: FAILED_URL,
@@ -143,7 +161,7 @@ serve(async (req) => {
         profileId,
         productId:   normalizedProductId,
         productName,
-        price:       Number(price),
+        price:       finalPrice,
         telegramId,
         username,
         paymentMethodId,
