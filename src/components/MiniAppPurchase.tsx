@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Zap, ImageIcon, Upload, Loader2, CheckCircle, ArrowLeft, Copy } from 'lucide-react';
 
-const MINIAPP_PURCHASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/miniapp-purchase';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+const MINIAPP_PURCHASE_URL = 'https://dgsqexlmknnbdeikrjba.supabase.co/functions/v1/miniapp-purchase';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY';
 
 const TIERS = [
   { id: 'mk1', name: 'MK-I',   fullName: 'Jarvis Industries MK-I',   tokens: 10000, price: 1490, color: '#22d3ee', border: 'border-cyan-500/40',  bg: 'bg-cyan-950/20',  badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },

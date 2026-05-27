@@ -7,7 +7,7 @@ import {
   Clock, Zap, Search, AlertTriangle, ArrowLeft, Key, Copy, Trash2
 } from 'lucide-react';
 
-const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
+const SUPABASE_URL = 'https://dgsqexlmknnbdeikrjba.supabase.co';
 const SECURE_API = `${SUPABASE_URL}/functions/v1/secure-api`;
 
 const TIER_COLORS: Record<string, { border: string; bg: string; badge: string; text: string; dot: string }> = {
@@ -209,7 +209,7 @@ const AdminJarvis: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
         },
       });
       const data = await res.json();

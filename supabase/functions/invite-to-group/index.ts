@@ -1,299 +1,99 @@
+// ============================================================
+// invite-to-group — выдаёт инвайт-ссылку в Telegram канал товара
+// Использует ADMIN_BOT_TOKEN (бот должен быть админом каналов)
+// ============================================================
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const INVITE_BOT_TOKEN = Deno.env.get('INVITE_BOT_TOKEN')!;
-
-// Маппинг product_id → chat_id группы + бот токен
-const PRODUCT_GROUPS: Record<string, { chatId: string; name: string; botToken?: string }> = {
-  'jarvis_lite': { chatId: '-1002253987827', name: 'Jarvis Lite' },
-  'jarvis_max':  { chatId: '-1002564995824', name: 'Jarvis Max' },
-  'jarvis_pro':  { chatId: '-1002035910246', name: 'Jarvis Pro' },
-  'friday_pro':  { chatId: '-1001816037231', name: 'Friday Pro' },
-  'vibewall':    { chatId: '-1002277771896', name: 'VibeWall' },
-  'pccontrol':   { chatId: '-1002268406304', name: 'PcControl' },
-  'metacore':    { chatId: '-1003724594399', name: 'Metacore' },
-  // Jarvis Industries тарифы — каждый со своим ботом
-  'jarvis_industries_mk1': { chatId: '-1003743900341', name: 'Jarvis Industries MK-I',   botToken: Deno.env.get('JI_MK1_BOT_TOKEN')! },
-  'jarvis_industries_mk2': { chatId: '-1003794537001', name: 'Jarvis Industries MK-II',  botToken: Deno.env.get('JI_MK2_BOT_TOKEN')! },
-  'jarvis_industries_mk3': { chatId: '-1003876790984', name: 'Jarvis Industries MK-III', botToken: Deno.env.get('JI_MK3_BOT_TOKEN')! },
+// Маппинг product_id → постоянная инвайт-ссылка на Telegram-канал
+const PRODUCT_INVITE_LINKS: Record<string, { link: string; name: string }> = {
+  'jarvis-hud': { link: 'https://t.me/+MMjlEfT8lmhjYzcy', name: 'Jarvis' },
+  'ghost-gpt':  { link: 'https://t.me/+iE7VEND9CcZkNjVh', name: 'Ghost GPT' },
+  'metacore':   { link: 'https://t.me/+EcQoIfUg8r1lZjdi', name: 'Metacore' },
 };
 
-// Также маппинг по названию продукта (на случай если product_id не совпадает)
+// Маппинг по названию продукта
 const PRODUCT_NAME_MAP: Record<string, string> = {
-  'jarvis lite': 'jarvis_lite',
-  'jarvis max':  'jarvis_max',
-  'jarvis pro':  'jarvis_pro',
-  'friday pro':  'friday_pro',
-  'vibewall':    'vibewall',
-  'vibe wall':   'vibewall',
-  'pccontrol':   'pccontrol',
-  'pc control':  'pccontrol',
-  'metacore':    'metacore',
+  'jarvis':    'jarvis-hud',
+  'ghost gpt': 'ghost-gpt',
+  'ghostgpt':  'ghost-gpt',
+  'metacore':  'metacore',
 };
 
 function resolveProductKey(productId: string, productName: string): string | null {
-  // Сначала пробуем по product_id
-  const byId = productId?.toLowerCase().replace(/\s+/g, '_');
-  if (PRODUCT_GROUPS[byId]) return byId;
-
-  // Потом по названию
-  const byName = PRODUCT_NAME_MAP[productName?.toLowerCase()];
+  if (productId && PRODUCT_INVITE_LINKS[productId]) return productId;
+  const byName = PRODUCT_NAME_MAP[(productName || '').toLowerCase()];
   if (byName) return byName;
-
-  // Пробуем частичное совпадение по названию
-  const nameLower = productName?.toLowerCase() || '';
-  for (const [key, val] of Object.entries(PRODUCT_NAME_MAP)) {
-    if (nameLower.includes(key) || key.includes(nameLower)) return val;
+  const nameLower = (productName || '').toLowerCase();
+  for (const [k, v] of Object.entries(PRODUCT_NAME_MAP)) {
+    if (nameLower.includes(k)) return v;
   }
-
   return null;
 }
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { purchaseId, isJarvisIndustries } = await req.json();
+    const { purchaseId } = await req.json();
+    if (!purchaseId) return json({ error: 'purchaseId required' }, 400);
 
-    if (!purchaseId) {
-      return new Response(JSON.stringify({ error: 'purchaseId required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Достаём покупку
+    const { data: purchase, error: pErr } = await supabase
+      .from('purchases')
+      .select('*')
+      .eq('id', purchaseId)
+      .single();
+
+    if (pErr || !purchase) return json({ error: 'Purchase not found' }, 404);
+
+    // Только approved покупки
+    if (purchase.status !== 'approved') {
+      return json({ error: 'Покупка ещё не подтверждена' }, 400);
     }
 
-    console.log("[invite-to-group] Processing purchaseId:", purchaseId, "isJI:", isJarvisIndustries);
-
-    // Ищем в нужной таблице
-    let telegramIdStr = '';
-    let productKey = '';
-    let purchaseDbId = purchaseId;
-
-    if (isJarvisIndustries) {
-      const { data: jiPurchase, error: jiError } = await supabase
-        .from('jarvis_industries_purchases')
-        .select('*')
-        .eq('id', purchaseId)
-        .single();
-
-      if (jiError || !jiPurchase) {
-        console.error("[invite-to-group] JI Purchase not found:", jiError);
-        return new Response(JSON.stringify({ error: 'Purchase not found' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Получаем telegram_id из profiles отдельным запросом
-      telegramIdStr = jiPurchase.telegram_id || '';
-      if (!telegramIdStr && jiPurchase.profile_id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('telegram_id')
-          .eq('id', jiPurchase.profile_id)
-          .maybeSingle();
-        telegramIdStr = profile?.telegram_id || '';
-      }
-
-      productKey = `jarvis_industries_${jiPurchase.tier}`;
-
-      if (!PRODUCT_GROUPS[productKey]) {
-        return new Response(JSON.stringify({ error: `Неизвестный тариф: ${jiPurchase.tier}` }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const group = PRODUCT_GROUPS[productKey];
-      const botToken = group.botToken || INVITE_BOT_TOKEN;
-      let telegramUserId: number | null = null;
-      if (telegramIdStr.startsWith('@id_')) {
-        telegramUserId = parseInt(telegramIdStr.replace('@id_', ''), 10);
-      } else if (/^\d+$/.test(telegramIdStr)) {
-        telegramUserId = parseInt(telegramIdStr, 10);
-      }
-
-      console.log("[invite-to-group] JI Group:", group.name, group.chatId, "| User ID:", telegramUserId);
-
-      if (telegramUserId && !isNaN(telegramUserId)) {
-        // Сначала пробуем снять бан
-        const unbanRes = await fetch(`https://api.telegram.org/bot${botToken}/unbanChatMember`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId, only_if_banned: true }),
-        });
-        const unbanData = await unbanRes.json();
-        console.log("[invite-to-group] JI unban result:", unbanData.ok, unbanData.description || '');
-
-        const addRes = await fetch(`https://api.telegram.org/bot${botToken}/addChatMember`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId }),
-        });
-        const addData = await addRes.json();
-        console.log("[invite-to-group] JI addChatMember result:", JSON.stringify(addData));
-
-        if (addData.ok) {
-          await supabase.from('jarvis_industries_purchases')
-            .update({ invited_to_group: true, invited_at: new Date().toISOString() })
-            .eq('id', purchaseId);
-
-          return new Response(JSON.stringify({
-            success: true, added_directly: true, group: group.name,
-          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        }
-
-        console.warn("[invite-to-group] JI addChatMember failed:", addData.description, "— trying invite link");
-      }
-
-      // Создаём invite link для JI
-      const linkRes = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: group.chatId,
-          member_limit: 1,
-          expire_date: Math.floor(Date.now() / 1000) + 86400 * 30, // 30 дней
-        }),
-      });
-      const linkData = await linkRes.json();
-      console.log("[invite-to-group] JI createChatInviteLink result:", JSON.stringify(linkData));
-
-      if (linkData.ok) {
-        await supabase.from('jarvis_industries_purchases')
-          .update({ invite_link: linkData.result.invite_link })
-          .eq('id', purchaseId);
-
-        return new Response(JSON.stringify({
-          success: true,
-          added_directly: false,
-          invite_link: linkData.result.invite_link,
-          group: group.name,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-
-      // Оба метода не сработали — возвращаем понятную ошибку
-      console.error("[invite-to-group] JI BOTH methods failed. Bot:", botToken.split(':')[0], "Chat:", group.chatId, "Error:", linkData.description);
-      return new Response(JSON.stringify({
-        error: `Бот не является администратором группы "${group.name}". Убедитесь что бот добавлен как администратор. Ошибка: ${linkData.description}`,
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    } else {
-      // Обычная покупка — старая логика
-      const { data: purchase, error: purchaseError } = await supabase
-        .from('purchases')
-        .select('*')
-        .eq('id', purchaseId)
-        .single();
-
-      if (purchaseError || !purchase) {
-        console.error("[invite-to-group] Purchase not found:", purchaseError);
-        return new Response(JSON.stringify({ error: 'Purchase not found' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Получаем telegram_id из profiles отдельным запросом
-      let telegramIdStr = '';
-      if (purchase.profile_id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('telegram_id, username')
-          .eq('id', purchase.profile_id)
-          .maybeSingle();
-        telegramIdStr = profile?.telegram_id || '';
-      }
-
-      let telegramUserId: number | null = null;
-      if (telegramIdStr.startsWith('@id_')) {
-        telegramUserId = parseInt(telegramIdStr.replace('@id_', ''), 10);
-      } else if (/^\d+$/.test(telegramIdStr)) {
-        telegramUserId = parseInt(telegramIdStr, 10);
-      }
-
-      const resolvedKey = resolveProductKey(purchase.product_id, purchase.product_name);
-      if (!resolvedKey) {
-        console.error("[invite-to-group] Unknown product:", purchase.product_id, purchase.product_name);
-        return new Response(JSON.stringify({ error: `Неизвестный продукт: ${purchase.product_name}` }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const group = PRODUCT_GROUPS[resolvedKey];
-      const botToken = group.botToken || INVITE_BOT_TOKEN;
-      console.log("[invite-to-group] Group:", group.name, group.chatId, "| User ID:", telegramUserId, "| Bot:", botToken.split(':')[0]);
-
-      if (telegramUserId && !isNaN(telegramUserId)) {
-        await fetch(`https://api.telegram.org/bot${botToken}/unbanChatMember`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId, only_if_banned: true }),
-        });
-
-        const addRes = await fetch(`https://api.telegram.org/bot${botToken}/addChatMember`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: group.chatId, user_id: telegramUserId }),
-        });
-        const addData = await addRes.json();
-        console.log("[invite-to-group] addChatMember result:", addData);
-
-        if (addData.ok) {
-          await supabase.from('purchases')
-            .update({ invited_to_group: true, invited_at: new Date().toISOString() })
-            .eq('id', purchaseId);
-
-          return new Response(JSON.stringify({
-            success: true, added_directly: true, group: group.name,
-          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        }
-
-        console.warn("[invite-to-group] addChatMember failed:", addData.description, "— trying invite link");
-      }
-
-      const linkRes = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: group.chatId,
-          member_limit: 1,
-          expire_date: Math.floor(Date.now() / 1000) + 86400,
-        }),
-      });
-      const linkData = await linkRes.json();
-      console.log("[invite-to-group] createChatInviteLink result:", linkData);
-
-      if (linkData.ok) {
-        await supabase.from('purchases')
-          .update({ invite_link: linkData.result.invite_link })
-          .eq('id', purchaseId);
-
-        return new Response(JSON.stringify({
-          success: true,
-          added_directly: false,
-          invite_link: linkData.result.invite_link,
-          group: group.name,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-
-      console.error("[invite-to-group] Bot is not admin in group:", group.chatId, linkData);
-      return new Response(JSON.stringify({
-        error: `Бот не является администратором группы ${group.name}. Обратитесь в поддержку: @vibetechhSupport`,
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const resolvedKey = resolveProductKey(purchase.product_id, purchase.product_name);
+    if (!resolvedKey) {
+      return json({ error: `Неизвестный продукт: ${purchase.product_name}` }, 400);
     }
+
+    const group = PRODUCT_INVITE_LINKS[resolvedKey];
+
+    if (!group.link) {
+      return json({ error: `Ссылка-приглашение для "${group.name}" ещё не настроена` }, 400);
+    }
+
+    // Сохраняем выданную ссылку в БД
+    await supabase.from('purchases')
+      .update({ invite_link: group.link, invited_at: new Date().toISOString() })
+      .eq('id', purchaseId);
+
+    return json({
+      success: true,
+      invite_link: group.link,
+      group: group.name,
+    });
 
   } catch (error) {
-    console.error("[invite-to-group] Error:", error);
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('[invite-to-group] Error:', error);
+    return json({ error: String(error) }, 500);
   }
 });

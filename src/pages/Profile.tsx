@@ -17,7 +17,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { metacoreSupabase, METACORE_FN_BASE, METACORE_SUPABASE_KEY } from '@/integrations/supabase/metacore-client';
 
-const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
+const SUPABASE_FN = 'https://dgsqexlmknnbdeikrjba.supabase.co/functions/v1';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   pending:  { label: 'На рассмотрении', color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/20', dot: 'bg-yellow-400' },
@@ -146,42 +146,27 @@ const Profile = () => {
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const handleGetProduct = async (purchaseId: string, isJarvisIndustries?: boolean, isMetacore?: boolean) => {
+  const handleGetProduct = async (purchaseId: string) => {
     setInvitingId(purchaseId);
     setInviteErrors(prev => { const n = {...prev}; delete n[purchaseId]; return n; });
 
-    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY';
 
     try {
-      const url = isMetacore
-        ? `${METACORE_FN_BASE}/invite-to-group`
-        : `${SUPABASE_FN}/invite-to-group`;
-
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (isMetacore) {
-        headers['Authorization'] = `Bearer ${METACORE_SUPABASE_KEY}`;
-        headers['apikey'] = METACORE_SUPABASE_KEY;
-      } else {
-        let accessToken = ANON_KEY;
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) accessToken = session.access_token;
-        } catch (_) { /* используем anon key */ }
-        headers['Authorization'] = `Bearer ${accessToken}`;
-        headers['apikey'] = ANON_KEY;
-      }
-
-      console.log('[handleGetProduct] calling invite-to-group, purchaseId:', purchaseId, 'isJI:', isJarvisIndustries, 'isMetacore:', isMetacore);
+      const url = `${SUPABASE_FN}/invite-to-group`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ANON_KEY}`,
+        'apikey': ANON_KEY,
+      };
 
       const res = await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ purchaseId, isJarvisIndustries: !!isJarvisIndustries }),
+        body: JSON.stringify({ purchaseId }),
       });
 
       const text = await res.text();
-      console.log('[handleGetProduct] status:', res.status, 'body:', text);
-
       let data: Record<string, unknown> = {};
       try { data = JSON.parse(text); } catch (_) { data = { error: text }; }
 
@@ -557,7 +542,7 @@ const Profile = () => {
                                       window.open(link, '_blank');
                                     } else {
                                       setInviteErrors(prev => { const n = {...prev}; delete n[item.id]; return n; });
-                                      handleGetProduct(item.id, isJI, isMetacore);
+                                      handleGetProduct(item.id);
                                     }
                                   }}
                                   disabled={invitingId === item.id || (isJI && accessExpired)}

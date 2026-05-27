@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_FN_BASE } from './client';
 
-export const METACORE_SUPABASE_URL = 'https://nsrilzwmclsiwtrsomer.supabase.co';
-export const METACORE_SUPABASE_KEY = 'sb_publishable_hwWGgZt8SK88_6ToeoKjtA_Sja5GyGM';
-export const METACORE_FN_BASE = `${METACORE_SUPABASE_URL}/functions/v1`;
-export const METACORE_PAYMENT_URL = `${METACORE_FN_BASE}/platega-webhook`;
+// Все товары теперь идут через один проект Supabase и один Platega webhook
+export const METACORE_SUPABASE_URL = SUPABASE_URL;
+export const METACORE_SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY;
+export const METACORE_FN_BASE = SUPABASE_FN_BASE;
+export const METACORE_PAYMENT_URL = `${SUPABASE_FN_BASE}/platega-webhook`;
 
-export const metacoreSupabase = createClient(METACORE_SUPABASE_URL, METACORE_SUPABASE_KEY);
+export const metacoreSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 export type MetacorePurchase = {
   id: string;

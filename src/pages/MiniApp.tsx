@@ -6,7 +6,7 @@ import MiniAppPurchase from '@/components/MiniAppPurchase';
 
 // Telegram WebApp types handled via window.Telegram?.WebApp access
 
-const SUPABASE_URL = 'https://ldvlahtoiwimroycqcav.supabase.co';
+const SUPABASE_URL = 'https://dgsqexlmknnbdeikrjba.supabase.co';
 const SECURE_API = `${SUPABASE_URL}/functions/v1/secure-api`;
 const ISSUE_TOKEN_API = `${SUPABASE_URL}/functions/v1/jarvis-bot-issue-token`;
 

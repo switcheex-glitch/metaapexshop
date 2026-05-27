@@ -22,30 +22,10 @@ interface PaymentModalProps {
   containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
-
 const PLATEGA_METHODS = [
-  { id: 'sbp',      name: 'СБП (Россия)',        icon: <Smartphone className="w-4 h-4" />, badge: 'Быстро', country: '🇷🇺 Россия',    currency: 'RUB', symbol: '₽',  rate: 1 },
-  { id: 'cards_ru', name: 'Карты РФ (Мир/Visa)', icon: <CreditCard className="w-4 h-4" />, badge: null,     country: '🇷🇺 Россия',    currency: 'RUB', symbol: '₽',  rate: 1 },
-  { id: 'crypto',   name: 'Криптовалюта',         icon: <Bitcoin className="w-4 h-4" />,    badge: 'Авто',   country: '🌍 Весь мир',   currency: 'USDT', symbol: '$', rate: 0.011 },
+  { id: 'sbp',    name: 'СБП (Россия)',  icon: <Smartphone className="w-4 h-4" />, badge: 'Быстро', country: '🇷🇺 Россия',  currency: 'RUB',  symbol: '₽',  rate: 1 },
+  { id: 'crypto', name: 'Криптовалюта',   icon: <Bitcoin className="w-4 h-4" />,    badge: 'Авто',   country: '🌍 Весь мир', currency: 'USDT', symbol: '$', rate: 0.011 },
 ];
-
-const METACORE_METHODS = PLATEGA_METHODS.filter(m => m.id === 'sbp' || m.id === 'crypto');
-
-const MANUAL_METHODS = [
-  { id: 'kaspi',  name: 'Kaspi (Visa)',  icon: <Landmark className="w-4 h-4" />,   country: '🇰🇿 Казахстан', currency: 'KZT', symbol: '₸',  rate: 4.8,  infoUrl: 'https://telegra.ph/Oplata-Kaspi-10-31',       requisites: [{ label: 'Kaspi / РБ — Фарида Л.',  value: '4400 4303 0558 1131' }] },
-  { id: 'mono',   name: 'MonoBank',      icon: <CreditCard className="w-4 h-4" />, country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'MonoBank — Богдан Р.',    value: '4441111066552765' }] },
-  { id: 'abank',  name: 'АБанк',         icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'АБанк — Богдан Р.',       value: '4323347363236206' }] },
-  { id: 'pumb',   name: 'Пумб',          icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦 Украина',   currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31',  requisites: [{ label: 'Пумб — Богдан Р.',        value: '5355280043078623' }] },
-  { id: 'rb',     name: 'Оплата с РБ',   icon: <CreditCard className="w-4 h-4" />, country: '🇧🇾 Беларусь',  currency: 'BYN', symbol: 'Br', rate: 0.035,infoUrl: 'https://telegra.ph/Oplata-s-belarus-10-31',   requisites: [{ label: 'Kaspi Visa — Фарида Л.', value: '4400 4303 0558 1131' }] },
-  { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍 Весь мир',   currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',      requisites: [{ label: 'PayPal Email',            value: 'Dark_in2000@mail.ru' }] },
-];
-
-const METHOD_NAMES: Record<string, string> = {
-  sbp: 'СБП', cards_ru: 'Карты РФ', crypto: 'Криптовалюта',
-  kaspi: 'Kaspi', mono: 'MonoBank', abank: 'АБанк', pumb: 'Пумб',
-  rb: 'РБ', paypal: 'PayPal',
-};
 
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productName, productId, productPrice }) => {
@@ -92,10 +72,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     setShowPrivacyPolicy(agreementAccepted && !policyAccepted);
   }, [isOpen]);
 
-  const isMetacore = productId === 'metacore';
-  const plategaMethods = isMetacore ? METACORE_METHODS : PLATEGA_METHODS;
-  const selectedManual = isMetacore ? undefined : MANUAL_METHODS.find(m => m.id === selectedMethod);
-  const isPlatega = plategaMethods.some(m => m.id === selectedMethod);
+  const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
 
   const priceInCurrency = productPrice
     ? `${convertPrice(productPrice)} ${getSymbol()}`
@@ -187,11 +164,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
         fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
 
         const { data: { session } } = await supabase.auth.getSession();
-        const fnRes = await fetch('https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/send-notification', {
+        const fnRes = await fetch('https://dgsqexlmknnbdeikrjba.supabase.co/functions/v1/send-notification', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session?.access_token || 'anon'}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
           },
           body: fd,
         });
@@ -220,39 +197,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     setIsLoading(true);
     setErrorMsg('');
     try {
+      const url = `${METACORE_FN_BASE}/platega-webhook`;
+
       const { data: { session } } = await supabase.auth.getSession();
-      const url = isMetacore ? METACORE_PAYMENT_URL : `${SUPABASE_FN}/create-payment`;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
       };
-      if (isMetacore) {
-        headers['Authorization'] = `Bearer ${METACORE_SUPABASE_KEY}`;
-        headers['apikey'] = METACORE_SUPABASE_KEY;
-      } else {
-        headers['Authorization'] = `Bearer ${session?.access_token || ''}`;
-        headers['apikey'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
-      }
 
-      const body = isMetacore
-        ? {
-            action: 'create',
-            amount: productPrice || 0,
-            productId,
-            productName,
-            profileId: profile!.id,
-            telegramId: profile!.telegram_id,
-            username: profile!.username,
-            paymentMethodId: selectedMethod,
-            currency: 'RUB',
-          }
-        : {
-            amount: productPrice || 0,
-            productName,
-            profileId: profile!.id,
-            currency: 'RUB',
-            paymentMethodId: selectedMethod,
-            productId,
-          };
+      const body = {
+        action: 'create',
+        profileId: profile!.id,
+        productId: productId || productName.toLowerCase().replace(/\s+/g, '_'),
+        productName,
+        price: productPrice || 0,
+        telegramId: profile!.telegram_id,
+        username: profile!.username,
+        paymentMethodId: selectedMethod,
+        currency: 'RUB',
+      };
 
       const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
       const data = await response.json();
@@ -277,7 +241,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     if (!selectedMethod) { setErrorMsg('Выберите способ оплаты'); return; }
     if (!profile) { setErrorMsg('Необходимо войти в аккаунт'); return; }
     setErrorMsg('');
-    if (selectedManual) { setShowRequisites(true); return; }
     if (isPlatega) await callPlatega();
   };
 
@@ -298,31 +261,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
     setErrorMsg('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const isJI = productId?.startsWith('jarvis_industries_');
-      const checkUrl = isMetacore
-        ? `${METACORE_FN_BASE}/platega-webhook`
-        : `${SUPABASE_FN}/check-payment`;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (isMetacore) {
-        headers['Authorization'] = `Bearer ${METACORE_SUPABASE_KEY}`;
-        headers['apikey'] = METACORE_SUPABASE_KEY;
-      } else {
-        headers['Authorization'] = `Bearer ${session?.access_token || ''}`;
-        headers['apikey'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE';
-      }
+      const checkUrl = `${METACORE_FN_BASE}/platega-webhook`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
+      };
       const res = await fetch(checkUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(isMetacore
-          ? { action: 'check', transactionId, profileId: profile.id }
-          : {
-              transactionId,
-              profileId: profile.id,
-              productName,
-              productId: productId || productName.toLowerCase().replace(/\s+/g, '_'),
-              price: productPrice || 0,
-              isJarvisIndustries: !!isJI,
-            }),
+        body: JSON.stringify({ action: 'check', transactionId, profileId: profile.id }),
       });
       const data = await res.json();
       console.log('[PM] check-payment result:', data);
@@ -596,10 +544,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                 <div className="space-y-4">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">
-                      {isMetacore ? '⚡ Оплата подписки Metacore' : '🇷🇺 Россия (автооплата)'}
+                      💳 Платёжные методы
                     </p>
                     <div className="space-y-2">
-                      {plategaMethods.map((method) => (
+                      {PLATEGA_METHODS.map((method) => (
                         <div key={method.id} onClick={() => setSelectedMethod(method.id)}
                           className={`flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
                           <div className="flex-1 flex items-center gap-3 p-4">
@@ -614,30 +562,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, productNam
                       ))}
                     </div>
                   </div>
-
-                  {!isMetacore && (
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🌍 Другие страны (реквизиты)</p>
-                      <div className="space-y-2">
-                        {MANUAL_METHODS.map((method) => (
-                          <div key={method.id} onClick={() => setSelectedMethod(method.id)}
-                            className={`relative flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
-                            <div className="flex-1 flex items-center gap-3 p-4">
-                              <span className="text-zinc-400">{method.icon}</span>
-                              <span className="font-medium text-[14px] text-zinc-100">{method.name}</span>
-                            </div>
-                            <span className="text-sm font-mono text-zinc-500 pr-2">
-                              {getPriceForMethod(method.currency, method.symbol)}
-                            </span>
-                            <button onClick={(e) => { e.stopPropagation(); window.open(method.infoUrl, '_blank'); }}
-                              className="p-3 mr-2 rounded-xl bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 transition-all" title="Инструкция">
-                              <ExternalLink size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {errorMsg && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4"><p className="text-red-400 text-sm">{errorMsg}</p></div>}
                   {!profile && <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4"><p className="text-yellow-400 text-sm">Войдите в аккаунт для оплаты</p></div>}

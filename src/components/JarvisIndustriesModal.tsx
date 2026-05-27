@@ -13,8 +13,7 @@ import PrivacyPolicyStep from "@/components/PrivacyPolicyStep";
 import PrivacyPolicyConsentStep from "@/components/PrivacyPolicyConsentStep";
 
 import { supabase } from '@/integrations/supabase/client';
-
-const SUPABASE_FN = 'https://ldvlahtoiwimroycqcav.supabase.co/functions/v1';
+import { METACORE_FN_BASE } from '@/integrations/supabase/metacore-client';
 
 const TIERS = [
   {
@@ -69,31 +68,9 @@ const TIERS = [
 ];
 
 const PLATEGA_METHODS = [
-  { id: 'sbp',      name: 'СБП (Россия)',        icon: <Smartphone className="w-4 h-4" />, badge: 'Быстро' },
-  { id: 'cards_ru', name: 'Карты РФ (Мир/Visa)', icon: <CreditCard className="w-4 h-4" />, badge: null },
-  { id: 'crypto',   name: 'Криптовалюта',         icon: <Bitcoin className="w-4 h-4" />,    badge: 'Авто' },
+  { id: 'sbp',    name: 'СБП (Россия)', icon: <Smartphone className="w-4 h-4" />, badge: 'Быстро' },
+  { id: 'crypto', name: 'Криптовалюта',  icon: <Bitcoin className="w-4 h-4" />,    badge: 'Авто'   },
 ];
-
-const MANUAL_METHODS = [
-  { id: 'kaspi',  name: 'Kaspi (Visa)',  icon: <Landmark className="w-4 h-4" />,   country: '🇰🇿', currency: 'KZT', symbol: '₸',  rate: 4.8,  infoUrl: 'https://telegra.ph/Oplata-Kaspi-10-31',      requisites: [{ label: 'Kaspi / РБ — Фарида Л.',  value: '4400 4303 0558 1131' }] },
-  { id: 'mono',   name: 'MonoBank',      icon: <CreditCard className="w-4 h-4" />, country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'MonoBank — Богдан Р.',    value: '4441111066552765' }] },
-  { id: 'abank',  name: 'АБанк',         icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'АБанк — Богдан Р.',       value: '4323347363236206' }] },
-  { id: 'pumb',   name: 'Пумб',          icon: <Landmark className="w-4 h-4" />,   country: '🇺🇦', currency: 'UAH', symbol: '₴',  rate: 0.45, infoUrl: 'https://telegra.ph/Oplata-PrivatBank-10-31', requisites: [{ label: 'Пумб — Богдан Р.',        value: '5355280043078623' }] },
-  { id: 'rb',     name: 'Оплата с РБ',   icon: <CreditCard className="w-4 h-4" />, country: '🇧🇾', currency: 'BYN', symbol: 'Br', rate: 0.035,infoUrl: 'https://telegra.ph/Oplata-s-belarus-10-31',  requisites: [{ label: 'Kaspi Visa — Фарида Л.', value: '4400 4303 0558 1131' }] },
-  { id: 'paypal', name: 'PayPal',        icon: <Wallet className="w-4 h-4" />,     country: '🌍', currency: 'USD', symbol: '$',  rate: 0.011,infoUrl: 'https://telegra.ph/Oplata-PayPal-10-31',     requisites: [{ label: 'PayPal Email',            value: 'Dark_in2000@mail.ru' }] },
-];
-
-const METHOD_NAMES: Record<string, string> = {
-  sbp: 'СБП',
-  cards_ru: 'Карты РФ',
-  crypto: 'Криптовалюта',
-  kaspi: 'Kaspi',
-  mono: 'MonoBank',
-  abank: 'АБанк',
-  pumb: 'Пумб',
-  rb: 'РБ',
-  paypal: 'PayPal',
-};
 
 interface JarvisIndustriesModalProps {
   isOpen: boolean;
@@ -178,24 +155,14 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${SUPABASE_FN}/check-payment`, {
+      const res = await fetch(`${METACORE_FN_BASE}/platega-webhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || ''}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
         },
-        body: JSON.stringify({
-          transactionId,
-          profileId: profile.id,
-          productName: selectedTier.fullName,
-          productId: `jarvis_industries_${selectedTier.id}`,
-          price: getTierDisplayPrice(selectedTier),
-          isJarvisIndustries: true,
-          tier: selectedTier.id,
-          tierName: selectedTier.fullName,
-          tokens: selectedTier.tokens,
-        }),
+        body: JSON.stringify({ action: 'check', transactionId, profileId: profile.id }),
       });
       const data = await res.json();
       console.log('[JI] check-payment result:', data);
@@ -204,7 +171,6 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
         setStep('success');
         setTimeout(() => goToProfile(), 3000);
       } else {
-        // Платёж ещё не подтверждён — просто идём в профиль
         goToProfile();
       }
     } catch (e) {
@@ -215,7 +181,6 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
     }
   };
 
-  const selectedManual = MANUAL_METHODS.find(m => m.id === selectedMethod);
   const isPlatega = PLATEGA_METHODS.some(m => m.id === selectedMethod);
 
   // Цена с учётом скидки
@@ -248,24 +213,25 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${SUPABASE_FN}/create-payment`, {
+      const response = await fetch(`${METACORE_FN_BASE}/platega-webhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || ''}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
         },
         body: JSON.stringify({
-          amount: getTierDisplayPrice(selectedTier),
-          productName: selectedTier.fullName,
-          productId: `jarvis_industries_${selectedTier.id}`,
+          action: 'create',
           profileId: profile.id,
-          currency: 'RUB',
+          productId: `jarvis_industries_${selectedTier.id}`,
+          productName: selectedTier.fullName,
+          price: getTierDisplayPrice(selectedTier),
+          telegramId: profile.telegram_id,
+          username: profile.username,
           paymentMethodId: selectedMethod,
+          currency: 'RUB',
           isJarvisIndustries: true,
           tier: selectedTier.id,
-          tierName: selectedTier.fullName,
-          tokens: selectedTier.tokens,
         }),
       });
 
@@ -327,11 +293,11 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
         fd.append('photo', screenshot, screenshot.name || 'screenshot.jpg');
 
         const { data: { session } } = await supabase.auth.getSession();
-        const fnRes = await fetch('https://ldvlahtoiwimroycqcav.supabase.co/functions/v1/send-notification', {
+        const fnRes = await fetch('https://dgsqexlmknnbdeikrjba.supabase.co/functions/v1/send-notification', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session?.access_token || 'anon'}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdmxhaHRvaXdpbXJveWNxY2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDIwODksImV4cCI6MjA4ODExODA4OX0.DCM-xvruLo2Sho-6I_o87aa5OENCgxCfmyYptMk86BE',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnc3FleGxta25uYmRlaWtyamJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MDI0ODEsImV4cCI6MjA5NTQ3ODQ4MX0.UbuUvgif9vlm6KRHRNHkXkxvB3JGI2y0D5SsKvze-MY',
           },
           body: fd,
         });
@@ -578,7 +544,7 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
               </div>
 
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🇷🇺 Россия (автооплата)</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">💳 Платёжные методы</p>
                 <div className="space-y-2">
                   {PLATEGA_METHODS.map((method) => (
                     <div key={method.id} onClick={() => setSelectedMethod(method.id)}
@@ -589,22 +555,6 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                         {method.badge && <span className="text-[10px] bg-white/10 text-zinc-400 px-2 py-0.5 rounded-full">{method.badge}</span>}
                       </div>
                       <span className="text-sm font-mono text-zinc-500 pr-4">{getTierDisplayPrice(selectedTier).toLocaleString('ru-RU')} ₽</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-2 px-1">🌍 Другие страны (реквизиты)</p>
-                <div className="space-y-2">
-                  {MANUAL_METHODS.map((method) => (
-                    <div key={method.id} onClick={() => setSelectedMethod(method.id)}
-                      className={`flex items-center rounded-2xl border transition-all cursor-pointer ${selectedMethod === method.id ? 'border-white bg-zinc-900' : 'border-transparent bg-zinc-900/50 hover:bg-zinc-800/80'}`}>
-                      <div className="flex-1 flex items-center gap-3 p-4">
-                        <span className="text-zinc-400">{method.icon}</span>
-                        <span className="font-medium text-[14px] text-zinc-100">{method.country} {method.name}</span>
-                      </div>
-                      <span className="text-sm font-mono text-zinc-500 pr-4">{getPriceForMethod(method.currency, method.symbol)}</span>
                     </div>
                   ))}
                 </div>
@@ -622,10 +572,6 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
                     if (!selectedMethod) { setErrorMsg('Выберите способ оплаты'); return; }
                     if (!profile) { setErrorMsg('Войдите в аккаунт'); return; }
                     setErrorMsg('');
-                    if (MANUAL_METHODS.find(m => m.id === selectedMethod)) {
-                      setStep('requisites');
-                      return;
-                    }
                     if (isPlatega) {
                       void callPlatega();
                     }
@@ -669,32 +615,6 @@ const JarvisIndustriesModal: React.FC<JarvisIndustriesModalProps> = ({ isOpen, o
               <button onClick={() => paymentUrl && window.open(paymentUrl, '_blank')} className="w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2">
                 Открыть страницу оплаты снова
               </button>
-            </div>
-          )}
-
-          {/* REQUISITES */}
-          {step === 'requisites' && selectedTier && selectedManual && (
-            <div className="space-y-4">
-              {selectedManual.requisites.map((req, i) => (
-                <div key={i} className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{req.label}</p>
-                    <p className="font-mono text-base tracking-wider text-white mt-1">{req.value}</p>
-                  </div>
-                  <button onClick={() => copyToClipboard(req.value)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ml-3"><Copy size={16} /></button>
-                </div>
-              ))}
-              <div className="bg-zinc-900/30 p-4 rounded-2xl border border-white/5">
-                <p className="text-[11px] text-zinc-500 leading-relaxed">
-                  Переведите <span className="text-white font-bold">{getPriceForMethod(selectedManual.currency, selectedManual.symbol)}</span> и укажите в комментарии: <span className="text-white font-bold">{selectedTier.name}</span>
-                </p>
-              </div>
-              <button onClick={() => window.open(selectedManual.infoUrl, '_blank')} className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors py-2">
-                <ExternalLink size={14} /> Инструкция по оплате
-              </button>
-              <Button onClick={() => setStep('screenshot')} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl hover:bg-zinc-200">
-                Я оплатил — прикрепить скриншот
-              </Button>
             </div>
           )}
 
