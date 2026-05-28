@@ -80,8 +80,10 @@ const Index = () => {
   };
 
   const currentProduct = products.find(p => p.name === selectedProduct) || null;
+  // Базовая цена без скидки — скидка применяется на сервере (platega-webhook),
+  // чтобы избежать двойного дисконтирования и подмены цены.
   const currentProductPrice = currentProduct
-    ? getDiscountedPrice(parseInt(currentProduct.price) || 0)
+    ? parseInt(currentProduct.price) || 0
     : 0;
 
   return (
